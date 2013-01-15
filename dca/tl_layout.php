@@ -1,10 +1,12 @@
 <?php
 /**
- * Created by JetBrains PhpStorm.
- * User: jrgregory
- * Date: 11.01.13
- * Time: 14:41
- * To change this template use File | Settings | File Templates.
+ * cssCrush for Contao Open Source CMS
+ *
+ * Copyright (C) 2013 Joe Ray Gregory
+ *
+ * @package cssCrush
+ * @link    http://borowiakziehe.de
+ * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL
  */
 
 $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = str_replace(
@@ -14,13 +16,20 @@ $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = str_replace(
 );
 array_push($GLOBALS['TL_DCA']['tl_layout']['palettes']['__selector__'], 'useCssCrush');
 
-$GLOBALS['TL_DCA']['tl_layout']['palettes']['cssCrush'] = '{title_legend},name;{header_legend},rows;{column_legend},cols;{sections_legend:hide},sections,sPosition;{style_legend},useCssCrush, cssCrushFile,cssCrushMinify,cssCrushCache,cssCrushVersioning,cssCrushDirName,cssCrushFileName,cssCrushDocRoot,cssCrushContext;{feed_legend:hide}{feed_legend:hide},newsfeeds,calendarfeeds;{modules_legend},modules;{expert_legend:hide},template,doctype,webfonts,cssClass,onload,head;{jquery_legend},addJQuery;{mootools_legend},addMooTools;{script_legend},analytics,script;{static_legend},static';
+$originalDefault = str_replace
+(
+    'useCssCrush',
+    'useCssCrush,cssCrushFile,cssCrushMinify,cssCrushCache,cssCrushVersioning,cssCrushDirName,cssCrushFileName,cssCrushDocRoot,cssCrushContext,cssCrushPlugins,',
+    $GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
+);
+
+$GLOBALS['TL_DCA']['tl_layout']['palettes']['cssCrush'] = $originalDefault;
 
 $fields = array
 (
     'useCssCrush' => array
     (
-        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['articleType'],
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['useCssCrush'],
         'default'                 => 'text',
         'exclude'                 => true,
         'filter'                  => true,
@@ -33,7 +42,7 @@ $fields = array
 
     'cssCrushFile' => array
     (
-        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['singleSRC'],
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushSrc'],
         'exclude'                 => true,
         'inputType'               => 'fileTree',
         'eval'                    => array('fieldType'=>'radio', 'mandatory'=>true, 'files'=>true, 'tl_class'=>'clr', 'extensions' => 'css'),
@@ -60,7 +69,7 @@ $fields = array
 
     'cssCrushVersioning' => array
     (
-        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushCache'],
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushVersioning'],
         'exclude'                 => true,
         'inputType'               => 'checkbox',
         'eval'                    => array('tl_class'=>'w50 m12'),
@@ -89,7 +98,7 @@ $fields = array
 
     'cssCrushDocRoot' => array
     (
-        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['headline'],
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushDocRoot'],
         'exclude'                 => true,
         'search'                  => true,
         'inputType'               => 'text',
@@ -105,7 +114,19 @@ $fields = array
         'inputType'               => 'text',
         'eval'                    => array('maxlength'=>255, 'tl_class'=>'w50 m12'),
         'sql'                     => "varchar(255) NOT NULL default ''"
+    ),
+
+    'cssCrushPlugins' => array
+    (
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushPlugins'],
+        'exclude'                 => true,
+        'inputType'               => 'checkbox',
+        'options_callback'        => array('CssCrushLoader', 'getPlugins'),
+        'eval'                    => array('multiple'=>true, 'helpwizard'=>true),
+        'reference'               => &$GLOBALS['TL_LANG']['tl_layout']['plugins'],
+        'sql'                     => "blob NULL"
     )
+
     /*
      * TODO Adding fields see https://github.com/peteboere/css-crush/wiki/PHP-API#options
      * rewrite_import_urls Input Unit
