@@ -93,7 +93,10 @@ class CssCrushLoader extends \Frontend
         $activePlugins = deserialize($objLayout->cssCrushPlugins);
 
         $allPlugins = self::getPlugins();
-        $disabledPlugins = array_diff($allPlugins,$activePlugins);
+        if(is_array($activePlugins)){
+            $disabledPlugins = array_diff($allPlugins,$activePlugins);
+        }
+
 
         return array
         (
