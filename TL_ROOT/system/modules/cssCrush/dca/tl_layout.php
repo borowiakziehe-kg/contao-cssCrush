@@ -35,7 +35,7 @@ $fields = array
         'filter'                  => true,
         'inputType'               => 'select',
         'options'                 => array('default', 'cssCrush'),
-        'reference'               => &$GLOBALS['TL_LANG']['tl_article']['types'],
+        'reference'               => &$GLOBALS['TL_LANG']['tl_layout']['csstypes'],
         'eval'                    => array('chosen'=>true, 'submitOnChange'=>true),
         'sql'                     => "varchar(32) NOT NULL default ''"
     ),
@@ -45,7 +45,7 @@ $fields = array
         'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushSrc'],
         'exclude'                 => true,
         'inputType'               => 'fileTree',
-        'eval'                    => array('fieldType'=>'radio', 'mandatory'=>true, 'files'=>true, 'tl_class'=>'clr', 'extensions' => 'css'),
+        'eval'                    => array('fieldType'=>'radio', 'mandatory'=>true, 'files'=>true, 'tl_class'=>'clr m12', 'extensions' => 'css'),
         'sql'                     => "varchar(255) NOT NULL default ''"
     ),
 
@@ -72,13 +72,13 @@ $fields = array
         'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushVersioning'],
         'exclude'                 => true,
         'inputType'               => 'checkbox',
-        'eval'                    => array('tl_class'=>'w50 m12'),
+        'eval'                    => array('tl_class'=>'w50'),
         'sql'                     => "char(1) NOT NULL default ''"
     ),
 
     'cssCrushDirName' => array
     (
-        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['headline'],
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushDirName'],
         'exclude'                 => true,
         'search'                  => true,
         'inputType'               => 'text',
@@ -88,7 +88,7 @@ $fields = array
 
     'cssCrushFileName' => array
     (
-        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['headline'],
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushFileName'],
         'exclude'                 => true,
         'search'                  => true,
         'inputType'               => 'text',
@@ -102,7 +102,7 @@ $fields = array
         'exclude'                 => true,
         'search'                  => true,
         'inputType'               => 'text',
-        'eval'                    => array('maxlength'=>255, 'tl_class'=>'w50 m12'),
+        'eval'                    => array('maxlength'=>255, 'tl_class'=>'w50'),
         'sql'                     => "varchar(255) NOT NULL default ''"
     ),
 
@@ -112,7 +112,7 @@ $fields = array
         'exclude'                 => true,
         'search'                  => true,
         'inputType'               => 'text',
-        'eval'                    => array('maxlength'=>255, 'tl_class'=>'w50 m12'),
+        'eval'                    => array('maxlength'=>255, 'tl_class'=>'w50'),
         'sql'                     => "varchar(255) NOT NULL default ''"
     ),
 
@@ -122,7 +122,7 @@ $fields = array
         'exclude'                 => true,
         'inputType'               => 'checkbox',
         'options_callback'        => array('CssCrushLoader', 'getPlugins'),
-        'eval'                    => array('multiple'=>true, 'helpwizard'=>true),
+        'eval'                    => array('multiple'=>true, 'tl_class'=>'m12 clr'),
         'reference'               => &$GLOBALS['TL_LANG']['tl_layout']['plugins'],
         'sql'                     => "blob NULL"
     )
