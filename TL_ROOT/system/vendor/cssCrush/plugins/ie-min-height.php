@@ -1,6 +1,6 @@
 <?php
 /**
- * Fix min-height in IE 6
+ * Polyfill for min-height in IE 6
  * 
  * @before
  *     min-height: 100px;
@@ -10,22 +10,33 @@
  *     _height: 100px;
  */
 
-csscrush_hook::add( 'rule_postalias', 'csscrush__ie_min_height' );
+CssCrush_Plugin::register('ie-min-height', array(
+    'enable' => 'csscrush__enable_ie_min_height',
+    'disable' => 'csscrush__disable_ie_min_height',
+));
 
-function csscrush__ie_min_height ( csscrush_rule $rule ) {
+function csscrush__enable_ie_min_height () {
+    CssCrush_Hook::add('rule_postalias', 'csscrush__ie_min_height');
+}
 
-    if ( $rule->propertyCount( 'min-height' ) < 1 ) {
+function csscrush__disable_ie_min_height () {
+    CssCrush_Hook::remove('rule_postalias', 'csscrush__ie_min_height');
+}
+
+function csscrush__ie_min_height (CssCrush_Rule $rule) {
+
+    if ($rule->propertyCount('min-height') < 1) {
         return;
     }
     $new_set = array();
-    foreach ( $rule as $declaration ) {
+    foreach ($rule as $declaration) {
         $new_set[] = $declaration;
-        if ( 
+        if (
             $declaration->skip ||
-            $declaration->property !== 'min-height' ) {
+            $declaration->property !== 'min-height') {
             continue;
         }
-        $new_set[] = new csscrush_declaration( '_height', $declaration->value );
+        $new_set[] = new CssCrush_Declaration('_height', $declaration->value);
     }
-    $rule->declarations = $new_set;
+    $rule->setDeclarations($new_set);
 }

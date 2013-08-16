@@ -1,32 +1,41 @@
 <?php
 /**
- * HSL shim
- * Converts HSL values into hex code that works in all browsers
- * 
+ * Polyfill for hsl() color values
+ *
  * @before
- *     color: hsl( 100, 50%, 50% )
+ *     color: hsl( 100, 50%, 50%)
  * 
  * @after
  *    color: #6abf40
  */
 
-csscrush_hook::add( 'rule_postalias', 'csscrush__hsl_to_hex' );
+CssCrush_Plugin::register('hsl-to-hex', array(
+    'enable' => 'csscrush__enable_hsl_to_hex',
+    'disable' => 'csscrush__disable_hsl_to_hex',
+));
 
-function csscrush__hsl_to_hex ( csscrush_rule $rule ) {
+function csscrush__enable_hsl_to_hex () {
+    CssCrush_Hook::add('rule_postalias', 'csscrush__hsl_to_hex');
+}
 
-    foreach ( $rule as &$declaration ) {
-        if ( 
-            ! $declaration->skip &&
-            ( ! empty( $declaration->functions ) && in_array( 'hsl', $declaration->functions ) )
-        ) {
-            while ( preg_match( '!hsl(\?p\d+\?)!', $declaration->value, $m ) ) {
-                $full_match = $m[0];
+function csscrush__disable_hsl_to_hex () {
+    CssCrush_Hook::remove('rule_postalias', 'csscrush__hsl_to_hex');
+}
+
+function csscrush__hsl_to_hex (CssCrush_Rule $rule) {
+
+    static $hsl_patt;
+    if (! $hsl_patt) {
+        $hsl_patt = CssCrush_Regex::create('{{LB}}hsl({{p-token}})', 'i');
+    }
+
+    foreach ($rule as &$declaration) {
+
+        if (! $declaration->skip && isset($declaration->functions['hsl'])) {
+            while (preg_match($hsl_patt, $declaration->value, $m)) {
                 $token = $m[1];
-                $hsl = trim( csscrush::$process->tokens->p[ $token ], '()' );
-                $hsl = array_map( 'trim', explode( ',', $hsl ) );
-                $rgb = csscrush_color::cssHslToRgb( $hsl );
-                $hex = csscrush_color::rgbToHex( $rgb );
-                $declaration->value = str_replace( $full_match, $hex, $declaration->value );
+                $color = new CssCrush_Color('hsl' . CssCrush::$process->tokens->pop($token));
+                $declaration->value = str_replace($m[0], $color->getHex(), $declaration->value);
             }
         }
     }

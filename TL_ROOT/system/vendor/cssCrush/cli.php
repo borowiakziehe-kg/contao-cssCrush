@@ -2,287 +2,603 @@
 <?php
 /**
  *
- * Command line application
+ * Command line utility.
  *
  */
-
 require_once 'CssCrush.php';
 
-// Exit status constants
-define( 'STATUS_OK', 0 );
-define( 'STATUS_ERROR', 1 );
+##################################################################
+##  Exit statuses.
 
-// Open stream handles
-$stdin  = fopen( 'php://stdin', 'r' );
-$stdout = fopen( 'php://stdout', 'w' );
-$stderr = fopen( 'php://stderr', 'w' );
-
-// Get stdin contents
-if ( ! stream_set_blocking( $stdin, false ) ) {
-
-    stderr( 'Failed to disable stdin blocking' );
-    exit( STATUS_ERROR );
-}
-$stdin_contents = stream_get_contents( $stdin );
-fclose( $stdin );
+define('STATUS_OK', 0);
+define('STATUS_ERROR', 1);
 
 
 ##################################################################
-##  Helpers
-
-function stderr ( $lines, $closing_newline = true ) {
-    global $stderr;
-    fwrite( $stderr,
-        implode( PHP_EOL, (array) $lines ) . ( $closing_newline ? PHP_EOL : '' )
-    );
-}
-
-function stdout ( $lines, $closing_newline = true ) {
-    global $stdout;
-    fwrite( $stdout,
-        implode( PHP_EOL, (array) $lines ) . ( $closing_newline ? PHP_EOL : '' )
-    );
-}
-
-
-##################################################################
-##  Version detection
+##  PHP requirements check.
 
 $version = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 $required_version = 5.3;
 
-if ( $version < $required_version ) {
+if ($version < $required_version) {
 
-    stderr( array(
+    stderr(array(
         "PHP version $required_version or higher is required to use this tool.",
-        "You are currently running PHP version $version" )
+        "You are currently running PHP version $version")
     );
-    exit( STATUS_ERROR );
+
+    exit(STATUS_ERROR);
 }
 
 
 ##################################################################
-##  Options
+##  Resolve options.
 
-$short_opts = array(
-    "f:",  // Input file. Defaults to sdtin
-    "o:",  // Output file. Defaults to stdout
-    "p",   // Pretty formatting
-    'b',   // Output boilerplate
-    'h',   // Display help
+$required_value_opts = array(
+    'i|input|f|file', // Input file. Defaults to STDIN.
+    'o|output',       // Output file. Defaults to STDOUT.
+    'E|enable' ,      // List of plugins to enable.
+    'D|disable',      // List of plugins to disable.
+    'vars|variables', // Map of variable names in an http query string format.
+    'formatter',      // Formatter name for formatted output.
+    'vendor-target',  // Vendor target.
+    'context',        // Context for resolving URLs.
+    'newlines',       // Newline style.
 );
 
-$long_opts = array(
-    'file:',           // Input file. Defaults to sdtin
-    'output:',         // Output file. Defaults to stdout
-    'pretty',          // Pretty formatting
-    'boilerplate',     // Output boilerplate
-    'help',            // Display help
-    'version',         // Display version
-    'trace',           // Output sass tracing stubs
-    'vendor-target:',  // Vendor target
-    'variables:',      // Map of variable names in an http query string format
-    'enable:',         // List of plugins to enable
-    'disable:',        // List of plugins to disable
-    'context:',        // Context for resolving URLs
+$optional_value_opts = array(
+    'b|boilerplate', // Boilerplate.
+    'trace',         // Debug info.
 );
 
-$opts = getopt( implode( $short_opts ), $long_opts );
+$flag_opts = array(
+    'p|pretty',   // Pretty output.
+    'w|watch',    // Watch mode.
+    'list',       // List plugins.
+    'help',       // Display help.
+    'version',    // Display version.
+    'source-map', // Display version.
+);
 
-$input_file = @( $opts['f'] ?: $opts['file'] );
-$output_file = @( $opts['o'] ?: $opts['output'] );
-$pretty = @( isset( $opts['p'] ) ?: isset( $opts['pretty'] ) );
-$boilerplate = @( isset( $opts['b'] ) ?: isset( $opts['boilerplate'] ) );
-$help_flag = @( isset( $opts['h'] ) ?: isset( $opts['help'] ) );
-$version_flag = @isset( $opts['version'] );
-$trace_flag = @isset( $opts['trace'] );
-$vendor_target = @$opts['vendor-target'];
-$variables = @$opts['variables'];
-$enable_plugins = isset( $opts['enable'] ) ? (array) $opts['enable'] : null;
-$disable_plugins = isset( $opts['disable'] ) ? (array) $opts['disable'] : null;
-$context = isset( $opts['context'] ) ? (array) $opts['context'] : null;
-
-
-##################################################################
-##  Help page
-
-$command = 'csscrush';
-
-$help = <<<TPL
-
-Usage:
-    csscrush [-f|--file] [-o|--output-file] [-p|--pretty] [-b|--boilerplate]
-             [-h|--help] [--variables] [--vendor-target] [--version]
-
-Options:
-    -f, --file:
-        The input file, if omitted takes input from stdin
-
-    -o, --output:
-        The output file, if omitted prints to stdout
-
-    -p, --pretty:
-        Formatted, unminified output
-
-    -b, --boilerplate:
-        Whether or not to output a boilerplate
-
-    -h, --help:
-        Display this help mesasge
-
-    --enable:
-        List of plugins to enable
-
-    --disable:
-        List of plugins to disable
-
-    --context:
-        Filepath context for resolving URLs
-
-    --trace:
-        Output debug-info stubs compatible with sass development tools
-
-    --variables:
-        Map of variable names in an http query string format
-
-    --vendor-target:
-        Set to 'all' for all vendor prefixes (default)
-        Set to 'none' for no vendor prefixes
-        Set to a specific vendor prefix
-
-    --version:
-        Version number
-
-Examples:
-    $command -f styles.css --pretty --vendor-target webkit
-
-    # Piping on unix based terminals
-    cat 'styles.css' | $command --boilerplate
-
-    # Linting
-    $command -f screen.css -p --enable property-sorter -o screen-linted.css
-
-TPL;
+// Create option strings for getopt().
+$short_opts = array();
+$long_opts = array();
+$join_opts = function ($opts_list, $modifier) use (&$short_opts, &$long_opts) {
+    foreach ($opts_list as $opt) {
+        foreach (explode('|', $opt) as $arg) {
+            if (strlen($arg) === 1) {
+                $short_opts[] = "$arg$modifier";
+            }
+            else {
+                $long_opts[] = "$arg$modifier";
+            }
+        }
+    }
+};
+$join_opts($required_value_opts, ':');
+$join_opts($optional_value_opts, '::');
+$join_opts($flag_opts, '');
 
 
+// Parse opts.
+$opts = getopt(implode($short_opts), $long_opts);
 
-if ( $version_flag ) {
+$args = new stdClass();
 
-    stdout( 'CSS Crush ' . csscrush::$config->version );
-    exit( STATUS_OK );
+// File arguments.
+$args->input_file = pick($opts, 'i', 'input', 'f', 'file');
+$args->output_file = pick($opts, 'o', 'output');
+$args->context = pick($opts, 'context');
+
+// Flags.
+$args->pretty = isset($opts['p']) ?: isset($opts['pretty']);
+$args->watch = isset($opts['w']) ?: isset($opts['watch']);
+$args->list = isset($opts['l']) ?: isset($opts['list']);
+$args->help = isset($opts['h']) ?: isset($opts['help']);
+$args->version = isset($opts['version']);
+$args->source_map = isset($opts['source-map']);
+
+// Arguments that optionally accept a single value.
+$args->boilerplate = pick($opts, 'b', 'boilerplate');
+$args->trace = pick($opts, 'trace');
+
+// Arguments that require a single value.
+$args->formatter = pick($opts, 'formatter');
+$args->vendor_target = pick($opts, 'vendor-target');
+$args->vars = pick($opts, 'vars', 'variables');
+$args->newlines = pick($opts, 'newlines');
+
+// Arguments that require a value but accept multiple values.
+$args->enable_plugins = pick($opts, 'E', 'enable');
+$args->disable_plugins = pick($opts, 'D', 'disable');
+
+// Detect trailing IO files from raw script arguments.
+list($trailing_input_file, $trailing_output_file) = get_trailing_io_args();
+
+// If detected apply, not overriding explicit IO file options.
+if (! $args->input_file && $trailing_input_file) {
+    $args->input_file = $trailing_input_file;
 }
-
-if ( $help_flag ) {
-
-    stdout( $help );
-    exit( STATUS_OK );
+if (! $args->output_file && $trailing_output_file) {
+    $args->output_file = $trailing_output_file;
 }
 
 
 ##################################################################
-##  Input
+##  Information options.
+
+if ($args->version) {
+
+    stdout('CSS-Crush ' . csscrush_version());
+
+    exit(STATUS_OK);
+}
+elseif ($args->help) {
+
+    stdout(manpage());
+
+    exit(STATUS_OK);
+}
+elseif ($args->list) {
+
+    $plugins = array();
+
+    foreach (CssCrush_Plugin::info() as $name => $docs) {
+        // Use first line of plugin doc for description.
+        $headline = isset($docs[0]) ? $docs[0] : false;
+        $plugins[] = colorize("<g>$name</>" . ($headline ? " - $headline" : ''));
+    }
+    stdout($plugins);
+
+    exit(STATUS_OK);
+}
+
+
+##################################################################
+##  Validate option values.
+
+// Filepath arguments.
+if ($args->input_file) {
+    $input_file = $args->input_file;
+    if (! ($args->input_file = realpath($args->input_file))) {
+        stderr("Input file '$input_file' does not exist.");
+
+        exit(STATUS_ERROR);
+    }
+}
+
+if ($args->output_file) {
+    $out_dir = realpath(dirname($args->output_file));
+    if (! $out_dir) {
+        stderr('Output directory does not exist.');
+
+        exit(STATUS_ERROR);
+    }
+    $args->output_file = $out_dir . '/' . basename($args->output_file);
+}
+
+if ($args->context) {
+    if (! ($args->context = realpath($args->context))) {
+        stderr('Context path does not exist.');
+
+        exit(STATUS_ERROR);
+    }
+}
+
+if (is_string($args->boilerplate)) {
+
+    if (! ($args->boilerplate = realpath($args->boilerplate))) {
+        stderr('Boilerplate file does not exist.');
+
+        exit(STATUS_ERROR);
+    }
+}
+
+
+// Run multiple value arguments through array cast.
+foreach (array('enable_plugins', 'disable_plugins', 'vendor_target') as $arg) {
+    if ($args->{$arg}) {
+        $args->{$arg} = (array) $args->{$arg};
+    }
+}
+
+
+##################################################################
+##  Resolve input.
 
 $input = null;
 
-if ( $input_file ) {
+// File input.
+if ($args->input_file) {
 
-    if ( ! file_exists( $input_file ) ) {
-        stdout( 'Input file not found' . PHP_EOL );
-        exit( STATUS_ERROR );
-    }
-    $input = file_get_contents( $input_file );
+    $input = file_get_contents($args->input_file);
 }
-elseif ( $stdin_contents ) {
+
+// STDIN.
+elseif ($stdin_contents = get_stdin_contents()) {
 
     $input = $stdin_contents;
 }
+
+// Bail with manpage if no input.
 else {
 
-    // No input, just output help screen
-    stdout( $help );
-    exit( STATUS_OK );
+    // No input, just output help screen.
+    stdout(manpage());
+
+    exit(STATUS_OK);
 }
 
 
+if ($args->watch && ! $args->input_file) {
+
+    stderr('Watch mode requires an input file.');
+
+    exit(STATUS_ERROR);
+}
+
 ##################################################################
-##  Processing
+##  Set process options.
 
 $process_opts = array();
-$process_opts[ 'boilerplate' ] = $boilerplate ? true : false;
-$process_opts[ 'minify' ] = $pretty ? false : true;
-$process_opts[ 'rewrite_import_urls' ] = true;
+$process_opts['boilerplate'] = isset($args->boilerplate) ? $args->boilerplate : false;
+$process_opts['minify'] = $args->pretty ? false : true;
 
-// Enable plugin args
-if ( $enable_plugins ) {
-    foreach ( $enable_plugins as $arg ) {
-        foreach ( preg_split( '!\s*,\s*!', $arg ) as $plugin ) {
-            $process_opts[ 'enable' ][] = $plugin;
-        }
+if ($args->formatter) {
+    $process_opts['formatter'] = $args->formatter;
+}
+
+if ($args->newlines) {
+    $process_opts['newlines'] = $args->newlines;
+}
+
+if ($args->enable_plugins) {
+    $process_opts['enable'] = parse_list($args->enable_plugins);
+}
+
+if ($args->disable_plugins) {
+    $process_opts['disable'] = parse_list($args->disable_plugins);
+}
+
+if ($args->trace) {
+    if (is_string($args->trace)) {
+        $args->trace = (array) $args->trace;
     }
+    $process_opts['trace'] = is_array($args->trace) ? parse_list($args->trace) : true;
 }
 
-// Disable plugin args.
-if ( $disable_plugins ) {
-    foreach ( $disable_plugins as $arg ) {
-        foreach ( preg_split( '!\s*,\s*!', $arg ) as $plugin ) {
-            $process_opts[ 'disable' ][] = $plugin;
-        }
-    }
+if ($args->vendor_target) {
+    $process_opts['vendor_target'] = parse_list($args->vendor_target);
 }
 
-// Tracing.
-if ( $trace_flag ) {
-    $process_opts[ 'trace' ] = true;
+if ($args->source_map) {
+    $process_opts['source_map'] = true;
 }
 
-// Vendor target args.
-if ( $vendor_target ) {
-    $process_opts[ 'vendor_target' ] = $vendor_target;
+if ($args->vars) {
+    parse_str($args->vars, $in_vars);
+    $process_opts['vars'] = $in_vars;
 }
 
-// Variables args.
-if ( $variables ) {
-    parse_str( $variables, $in_vars );
-    $process_opts[ 'vars' ] = $in_vars;
+// Resolve an input file context for relative filepaths.
+if (! $args->context) {
+    $args->context = $args->input_file ? dirname($args->input_file) : getcwd();
 }
+$process_opts['context'] = $args->context;
 
-// Resolve a context for URLs.
-if ( ! $context ) {
-    $context = $input_file ? dirname( realpath( $input_file ) ) : null;
+// Set document_root to the current working directory.
+$process_opts['doc_root'] = getcwd();
+
+// If output file is specified set output directory and output filename.
+if ($args->output_file) {
+    $process_opts['output_dir'] = dirname($args->output_file);
+    $process_opts['output_file'] = basename($args->output_file);
 }
-
-// If there is an import context set document root also.
-if ( $context ) {
-    $process_opts[ 'doc_root' ] = $context;
-    $process_opts[ 'context' ] = $context;
-}
-
-$output = csscrush::string( $input, $process_opts );
-
 
 ##################################################################
-##  Output
+##  Output.
 
-if ( $output_file ) {
+if ($args->watch) {
 
-    if ( ! @file_put_contents( $output_file, $output ) ) {
+    // Override the IO class.
+    csscrush_set('config', array('io' => 'CssCrush_IOWatch'));
 
-        $message[] = "Could not write to path '$output_file'";
+    stdout('CONTROL-C to quit.');
 
-        if ( strpos( $output_file, '~' ) === 0 ) {
-            $message[] = 'Tilde expansion does not work here';
+    while (true) {
+
+        $created_file = csscrush_file($args->input_file, $process_opts);
+        $stats = csscrush_stat();
+
+        if ($stats['errors']) {
+            stderr($stats['errors']);
+
+            exit(STATUS_ERROR);
         }
 
-        stderr( $message );
-        exit( STATUS_ERROR );
+        if (is_array($args->trace) && $stats['compile_time'] > 0) {
+            stdout(format_stats($stats));
+        }
+
+        sleep(1);
     }
 }
 else {
 
-    if ( csscrush::$process->errors ) {
-        stderr( csscrush::$process->errors );
+    $output = csscrush_string($input, $process_opts);
+    $stats = csscrush_stat();
+
+    if ($stats['errors']) {
+        stderr($stats['errors']);
     }
 
-    stdout( $output );
-    exit( STATUS_OK );
+    if ($args->output_file) {
+
+        if (! @file_put_contents($args->output_file, $output, LOCK_EX)) {
+
+            $message[] = "Could not write to path '{$args->output_file}'.";
+            stderr($message);
+
+            exit(STATUS_ERROR);
+        }
+    }
+
+    if (is_array($args->trace)) {
+        // Use stderror for stats to preserve stdout.
+        stderr(format_stats($stats) . PHP_EOL);
+    }
+
+    stdout($output);
+
+    exit(STATUS_OK);
+}
+
+
+##################################################################
+##  Helpers.
+
+function stderr ($lines, $closing_newline = true) {
+    $out = implode(PHP_EOL, (array) $lines) . ($closing_newline ? PHP_EOL : '');
+    fwrite(STDERR, $out);
+}
+
+function stdout ($lines, $closing_newline = true) {
+    $out = implode(PHP_EOL, (array) $lines) . ($closing_newline ? PHP_EOL : '');
+
+    // On OSX terminal is sometimes truncating 'visual' output to terminal
+    // with fwrite to STDOUT.
+    echo $out;
+}
+
+function get_stdin_contents () {
+    $stdin = fopen('php://stdin', 'r');
+    stream_set_blocking($stdin, false);
+    $stdin_contents = stream_get_contents($stdin);
+    fclose($stdin);
+
+    return $stdin_contents;
+}
+
+function parse_list (array $option) {
+
+    $out = array();
+    foreach ($option as $arg) {
+        if (is_string($arg)) {
+            foreach (preg_split('~\s*,\s*~', $arg) as $item) {
+                $out[] = $item;
+            }
+        }
+        else {
+            $out[] = $arg;
+        }
+    }
+    return $out;
+}
+
+function format_stats ($stats) {
+    $out = array();
+    foreach ($stats as $name => $value) {
+        if (is_scalar($value)) {
+            $out[] = "$name: $value";
+        }
+    }
+    return implode(PHP_EOL, $out);
+}
+
+function pick (array &$arr) {
+
+    $args = func_get_args();
+    array_shift($args);
+
+    foreach ($args as $key) {
+        if (isset($arr[$key])) {
+            // Optional values return false but we want true is argument is present.
+            return is_bool($arr[$key]) ? true : $arr[$key];
+        }
+    }
+    return null;
+}
+
+function colorize ($str) {
+
+    static $color_support;
+    static $tags = array(
+        '<b>' => "\033[0;30m",
+        '<r>' => "\033[0;31m",
+        '<g>' => "\033[0;32m",
+        '<y>' => "\033[0;33m",
+        '<b>' => "\033[0;34m",
+        '<v>' => "\033[0;35m",
+        '<c>' => "\033[0;36m",
+        '<w>' => "\033[0;37m",
+
+        '<B>' => "\033[1;30m",
+        '<R>' => "\033[1;31m",
+        '<G>' => "\033[1;32m",
+        '<Y>' => "\033[1;33m",
+        '<B>' => "\033[1;34m",
+        '<V>' => "\033[1;35m",
+        '<C>' => "\033[1;36m",
+        '<W>' => "\033[1;37m",
+
+        '</>' => "\033[m",
+    );
+
+    if (! isset($color_support)) {
+        $color_support = true;
+        if (DIRECTORY_SEPARATOR == '\\') {
+            $color_support = false !== getenv('ANSICON') || 'ON' === getenv('ConEmuANSI');
+        }
+    }
+
+    $find = array_keys($tags);
+    $replace = $color_support ? array_values($tags) : '';
+
+    return str_replace($find, $replace, $str);
+}
+
+function get_trailing_io_args () {
+
+    $trailing_input_file = null;
+    $trailing_output_file = null;
+
+    // Get raw script args, shift off calling scriptname and reduce to last three.
+    $trailing_args = $GLOBALS['argv'];
+    array_shift($trailing_args);
+    $trailing_args = array_slice($trailing_args, -3);
+
+    // Create patterns to detecting options.
+    $required_values = implode('|', $GLOBALS['required_value_opts']);
+    $value_opt_patt = "~^-{1,2}($required_values)$~";
+    $other_opt_patt = "~^-{1,2}([a-z0-9\-]+)?(=|$)~ix";
+
+    // Step through the args.
+    $filtered = array();
+    for ($i = 0; $i < count($trailing_args); $i++) {
+
+        $current = $trailing_args[$i];
+
+        // If tests as a required value option, reset and skip next.
+        if (preg_match($value_opt_patt, $current)) {
+            $filtered = array();
+            $i++;
+        }
+        // If it looks like any other kind of flag, or optional value option, reset.
+        elseif (preg_match($other_opt_patt, $current)) {
+            $filtered = array();
+        }
+        else {
+            $filtered[] = $current;
+        }
+    }
+
+    // We're only interested in the last two values.
+    $filtered = array_slice($filtered, -2);
+
+    switch (count($filtered)) {
+        case 1:
+            $trailing_input_file = $filtered[0];
+            break;
+        case 2:
+            $trailing_input_file = $filtered[0];
+            $trailing_output_file = $filtered[1];
+            break;
+    }
+
+    return array($trailing_input_file, $trailing_output_file);
+}
+
+function manpage () {
+
+    $manpage = <<<TPL
+
+<B>USAGE:</>
+    <B>csscrush <G>[OPTIONS] <g>[input-file] [output-file]
+
+<B>OPTIONS:</>
+    <G>-i<g>, --input</>:
+        Input file. If omitted takes input from STDIN.
+
+    <G>-o<g>, --output</>:
+        Output file. If omitted prints to STDOUT.
+
+    <G>-p<g>, --pretty</>:
+        Formatted, un-minified output.
+
+    <G>-w<g>, --watch</>:
+        Watch input file for changes.
+        Writes to file specified with -o option or to the input file
+        directory with a '.crush.css' file extension.
+
+    <G>-D<g>, --disable</>:
+        List of plugins to disable. Pass 'all' to disable all.
+
+    <G>-E<g>, --enable</>:
+        List of plugins to enable. Overrides <g>--disable</>.
+
+    <g>--boilerplate</>:
+        Whether or not to output a boilerplate. Optionally accepts filepath
+        to a custom boilerplate template.
+
+    <g>--context</>:
+        Filepath context for resolving relative URLs. Only meaningful when
+        taking raw input from STDIN.
+
+    <g>--formatter</>:
+        Formatter to use for formatted (<g>--pretty</>) output.
+        Available formatters:
+
+        'block' (default) -
+            Rules are block formatted.
+        'single-line' -
+            Rules are printed in single lines.
+        'padded' -
+            Rules are printed in single lines with right padded selectors.
+
+    <g>--help</>:
+        Display this help message.
+
+     <g>--list</>:
+        Show plugins.
+
+    <g>--newlines</>:
+        Force newline style on output css. Defaults to the current platform
+        newline. Possible values: 'windows' (or 'win'), 'unix', 'use-platform'.
+
+    <g>--source-map</>:
+        Output a source map (compliant with the Source Map v3 proposal).
+
+    <g>--trace</>:
+        Output debug-info stubs compatible with client-side Sass debuggers.
+
+    <g>--vars</>:
+        Map of variable names in an http query string format.
+
+    <g>--vendor-target</>:
+        Set to 'all' for all vendor prefixes (default).
+        Set to 'none' for no vendor prefixes.
+        Set to a specific vendor prefix.
+
+    <g>--version</>:
+        Print version number.
+
+<B>EXAMPLES:</>
+    # Restrict vendor prefixing.
+    csscrush --pretty --vendor-target webkit -i styles.css
+
+    # Piped input.
+    cat styles.css | csscrush --vars 'foo=black&bar=white' > alt-styles.css
+
+    # Linting.
+    csscrush --pretty --E property-sorter -i styles.css -o linted.css
+
+    # Watch mode.
+    csscrush --watch -i styles.css -o compiled/styles.css
+
+    # Using custom boilerplate template.
+    csscrush --boilerplate=css/boilerplate.txt css/styles.css
+
+TPL;
+
+    return colorize($manpage);
 }
