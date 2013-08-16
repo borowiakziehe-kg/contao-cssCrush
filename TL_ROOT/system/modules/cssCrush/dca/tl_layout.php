@@ -19,7 +19,7 @@ array_push($GLOBALS['TL_DCA']['tl_layout']['palettes']['__selector__'], 'useCssC
 $originalDefault = str_replace
 (
     'useCssCrush',
-    'useCssCrush,cssCrushFile,cssCrushMinify,cssCrushCache,cssCrushVersioning,cssCrushDirName,cssCrushFileName,cssCrushDocRoot,cssCrushContext,cssCrushPlugins,',
+    'useCssCrush,cssCrushFile;{csscrushoptions_legend},cssCrushMinify,cssCrushCache,cssCrushVersioning,cssCrushCtoCombiner,cssCrushSourceMap;{csscrushpath_legend:hide},cssCrushDirName,cssCrushFileName,cssCrushDocRoot,cssCrushContext;{csscrushplugins_legend},cssCrushPlugins;{cssframework_legend:hide},',
     $GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
 );
 
@@ -72,7 +72,25 @@ $fields = array
         'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushVersioning'],
         'exclude'                 => true,
         'inputType'               => 'checkbox',
-        'eval'                    => array('tl_class'=>'w50'),
+        'eval'                    => array('tl_class'=>'w50 m12'),
+        'sql'                     => "char(1) NOT NULL default ''"
+    ),
+
+    'cssCrushSourceMap' => array
+    (
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushSourceMap'],
+        'exclude'                 => true,
+        'inputType'               => 'checkbox',
+        'eval'                    => array('tl_class'=>'w50 m12'),
+        'sql'                     => "char(1) NOT NULL default ''"
+    ),
+
+    'cssCrushCtoCombiner' => array
+    (
+        'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushCtoCombiner'],
+        'exclude'                 => true,
+        'inputType'               => 'checkbox',
+        'eval'                    => array('tl_class'=>'w50 m12'),
         'sql'                     => "char(1) NOT NULL default ''"
     ),
 

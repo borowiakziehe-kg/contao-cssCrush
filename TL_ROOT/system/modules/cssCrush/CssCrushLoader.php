@@ -9,7 +9,7 @@
  * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL
  */
 
-namespace Contao;
+namespace slashworks;
 
 
 class CssCrushLoader extends \Frontend
@@ -21,7 +21,7 @@ class CssCrushLoader extends \Frontend
      * @param PageRegular $objPageRegular
      * @return string
      */
-    public function loadCSSCrush($objPage, $objLayout, PageRegular $objPageRegular)
+    public function loadCSSCrush($objPage, $objLayout, \PageRegular $objPageRegular)
     {
         if($objLayout->useCssCrush == 'cssCrush') {
 
@@ -47,6 +47,7 @@ class CssCrushLoader extends \Frontend
                 'output_dir' => ($objLayout->cssCrushDirName) ?  TL_ROOT.'/'.$objLayout->cssCrushDirName :  false,
                 'output_file' => ($objLayout->cssCrushFileName) ?  $objLayout->cssCrushFileName :  false,
                 'context' => ($objLayout->cssCrushContext) ?  $objLayout->cssCrushContext :  false,
+                'source_map' => ($objLayout->cssCrushSourceMap) ?  true :  false,
                 'enable' => $plugins['enabled'],
                 'disable' => $plugins['disabled']
             );
@@ -58,8 +59,12 @@ class CssCrushLoader extends \Frontend
             // generate css
             $compiled_file = csscrush_file(TL_ROOT.'/'.$objFile->path, $options);
 
+            // if combine option is set
+            if($objLayout->cssCrushCtoCombiner)
+                $strStatic = "||static";
+
             //add file to template
-            $GLOBALS['TL_CSS'][] = $compiled_file;
+            $GLOBALS['TL_CSS'][] = $compiled_file .$strStatic;
         }
     }
 

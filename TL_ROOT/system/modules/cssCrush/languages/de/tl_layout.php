@@ -27,4 +27,12 @@ $GLOBALS['TL_LANG']['tl_layout']['cssCrushDocRoot'] = array('Alternativer Docume
 $GLOBALS['TL_LANG']['tl_layout']['cssCrushContext'] = array('Kontext', 'Importieren von Inhalten aus einem relativem Pfad');
 $GLOBALS['TL_LANG']['tl_layout']['cssCrushPlugins'] = array('Zu ladende CSS Crush Erweiterungen', 'Wählen Sie aus, welche Plugins von CSS Crush geladen werden sollen.');
 
+$GLOBALS['TL_LANG']['tl_layout']['cssCrushCtoCombiner'] = array('CSS Crush Static', 'Die Crush Datei mit der Contao CSS kombinieren');
+$GLOBALS['TL_LANG']['tl_layout']['cssCrushSourceMap'] = array('CSS Crush Source Map', 'Erstellt eine Source Map nach Source Map v3 (für SASS Debugging)');
+
 $GLOBALS['TL_LANG']['tl_layout']['plugins'][''] = array('', '');
+
+$GLOBALS['TL_LANG']['tl_layout']['csscrushoptions_legend'] = 'CSS Crush Optionen';
+$GLOBALS['TL_LANG']['tl_layout']['csscrushpath_legend'] = 'CSS Crush Pfadangaben';
+$GLOBALS['TL_LANG']['tl_layout']['csscrushplugins_legend'] = 'CSS Crush Plugins';
+$GLOBALS['TL_LANG']['tl_layout']['cssframework_legend'] = 'CSS Framework';
