@@ -46,7 +46,7 @@ $fields = array
         'exclude'                 => true,
         'inputType'               => 'fileTree',
         'eval'                    => array('fieldType'=>'radio', 'mandatory'=>true, 'files'=>true, 'tl_class'=>'clr m12', 'extensions' => 'css'),
-        'sql'                     => "varchar(255) NOT NULL default ''"
+        'sql'                     => "blob NULL"
     ),
 
     'cssCrushMinify' => array
