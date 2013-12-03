@@ -4,14 +4,16 @@
  * Fixes for aliasing to legacy syntaxes.
  *
  */
-class CssCrush_PostAliasFix
+namespace CssCrush;
+
+class PostAliasFix
 {
     // Currently only post fixing aliased functions.
-    static public $functions = array(
-        ':gradients' => 'csscrush__post_alias_fix_gradients',
+    public static $functions = array(
+        ':gradients' => 'CssCrush\postalias_fix_gradients',
     );
 
-    static public function add ($alias_type, $key, $callback)
+    public static function add($alias_type, $key, $callback)
     {
         if ($alias_type === 'function') {
             // $key is the aliased css function name.
@@ -19,7 +21,7 @@ class CssCrush_PostAliasFix
         }
     }
 
-    static public function remove ($alias_type, $key)
+    public static function remove($alias_type, $key)
     {
         if ($type === 'function') {
             // $key is the aliased css function name.
@@ -31,17 +33,16 @@ class CssCrush_PostAliasFix
 /**
  * Post alias fix callback for all gradients.
  */
-function csscrush__post_alias_fix_gradients ($declaration_copies) {
-
-    csscrush__post_alias_fix_lineargradients($declaration_copies);
-    csscrush__post_alias_fix_radialgradients($declaration_copies);
+function postalias_fix_gradients($declaration_copies) {
+    postalias_fix_linear_gradients($declaration_copies);
+    postalias_fix_radial_gradients($declaration_copies);
 }
 
 /**
  * Convert the new angle syntax (keyword and degree) on -x-linear-gradient() functions
  * to legacy equivalents.
  */
-function csscrush__post_alias_fix_lineargradients ($declaration_copies) {
+function postalias_fix_linear_gradients($declaration_copies) {
 
     static $angles_new, $angles_old;
     if (! $angles_new) {
@@ -64,23 +65,25 @@ function csscrush__post_alias_fix_lineargradients ($declaration_copies) {
         $angles_old = array_values($angles);
     }
 
-    static $deg_patt, $deg_convert_callback, $fn_patt;
+    static $deg_patt, $fn_patt;
     if (! $deg_patt) {
-        $deg_patt = CssCrush_Regex::create('(?<=[\( ])({{number}})deg', 'i');
-        // Legacy angles move anti-clockwise and start from East, not North.
-        $deg_convert_callback = create_function('$m', '
-            $angle = floatval($m[1]);
-            $angle = ($angle + 90) - ($angle * 2);
-            return ($angle < 0 ? $angle + 360 : $angle) . \'deg\';
-        ');
-        $fn_patt = CssCrush_Regex::create('{{LB}}{{vendor}}(?:(?:repeating-)?linear-gradient)({{p-token}})', 'iS');
+        $deg_patt = Regex::make('~(?<=[\( ])({{number}})deg~i');
+        $fn_patt = Regex::make('~{{LB}}{{vendor}}(?:(?:repeating-)?linear-gradient)({{p-token}})~iS');
     }
+
+    // Legacy angles move anti-clockwise and start from East, not North.
+    $deg_convert_callback = function ($m) {
+        $angle = floatval($m[1]);
+        $angle = ($angle + 90) - ($angle * 2);
+        return ($angle < 0 ? $angle + 360 : $angle) . 'deg';
+    };
 
     // Create new paren tokens based on the first prefixed declaration.
     // Replace the new syntax with the legacy syntax.
     $original_parens = array();
     $replacement_parens = array();
-    foreach (CssCrush_Regex::matchAll($fn_patt, $declaration_copies[0]->value) as $m) {
+
+    foreach (Regex::matchAll($fn_patt, $declaration_copies[0]->value) as $m) {
 
         $original_parens[] = $m[1][0];
         $original_paren_value = CssCrush::$process->tokens->get($m[1][0]);
@@ -115,17 +118,17 @@ function csscrush__post_alias_fix_lineargradients ($declaration_copies) {
 /**
  * Remove the 'at' keyword from -x-radial-gradient() for legacy implementations.
  */
-function csscrush__post_alias_fix_radialgradients ($declaration_copies) {
+function postalias_fix_radial_gradients($declaration_copies) {
 
     // Create new paren tokens based on the first prefixed declaration.
     // Replace the new syntax with the legacy syntax.
     static $fn_patt;
     if (! $fn_patt) {
-        $fn_patt = CssCrush_Regex::create('{{LB}}{{vendor}}(?:(?:repeating-)?radial-gradient)({{p-token}})', 'iS');
+        $fn_patt = Regex::make('~{{LB}}{{vendor}}(?:(?:repeating-)?radial-gradient)({{p-token}})~iS');
     }
     $original_parens = array();
     $replacement_parens = array();
-    foreach (CssCrush_Regex::matchAll($fn_patt, $declaration_copies[0]->value) as $m) {
+    foreach (Regex::matchAll($fn_patt, $declaration_copies[0]->value) as $m) {
 
         $original_parens[] = $m[1][0];
         $replacement_parens[] = CssCrush::$process->tokens->add(

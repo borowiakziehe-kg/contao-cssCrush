@@ -4,31 +4,33 @@
  *  Stream sugar.
  *
  */
-class CssCrush_Stream
+namespace CssCrush;
+
+class Stream
 {
-    public function __construct ($str)
+    public function __construct($str)
     {
         $this->raw = $str;
     }
 
-    public function __toString ()
+    public function __toString()
     {
         return $this->raw;
     }
 
-    static public function endsWith ($haystack, $needle)
+    public static function endsWith($haystack, $needle)
     {
         return substr($haystack, -strlen($needle)) === $needle;
     }
 
-    public function update ($str)
+    public function update($str)
     {
         $this->raw = $str;
 
         return $this;
     }
 
-    public function substr ($start, $length = null)
+    public function substr($start, $length = null)
     {
         if (! isset($length)) {
 
@@ -40,19 +42,19 @@ class CssCrush_Stream
         }
     }
 
-    public function matchAll ($patt, $preprocess_patt = false)
+    public function matchAll($patt, $offset = 0)
     {
-        return CssCrush_Regex::matchAll($patt, $this->raw, $preprocess_patt);
+        return Regex::matchAll($patt, $this->raw, $offset);
     }
 
-    public function replace ($find, $replacement)
+    public function replace($find, $replacement)
     {
         $this->raw = str_replace($find, $replacement, $this->raw);
 
         return $this;
     }
 
-    public function replaceHash ($replacements)
+    public function replaceHash($replacements)
     {
         if ($replacements) {
             $this->raw = str_replace(
@@ -63,34 +65,30 @@ class CssCrush_Stream
         return $this;
     }
 
-    public function replaceTokens ($type, $callback = null)
+    public function replaceTokens($type, $callback = null)
     {
-        static $types = array();
-        if (! isset($types[$type])) {
-            $types[$type]['callback'] = create_function('$m', '
-                $tokens =& CssCrush::$process->tokens->store->' . $type . ';
-                return isset($tokens[$m[0]]) ? $tokens[$m[0]] : \'\';
-            ');
-            $types[$type]['patt'] = CssCrush_Regex::create("\? $type {{token-id}} \?", 'xS');
-        }
+        $tokens =& CssCrush::$process->tokens->store->{ $type };
+        $callback = $callback ?: function ($m) use (&$tokens) {
+            return isset($tokens[$m[0]]) ? $tokens[$m[0]] : '';
+        };
 
-        $this->raw = preg_replace_callback($types[$type]['patt'], $callback ? $callback : $types[$type]['callback'], $this->raw);
+        $this->raw = preg_replace_callback(Regex::make("~\? $type {{token-id}} \?~xS"), $callback, $this->raw);
         return $this;
     }
 
-    public function pregReplace ($patt, $replacement)
+    public function pregReplace($patt, $replacement)
     {
         $this->raw = preg_replace($patt, $replacement, $this->raw);
         return $this;
     }
 
-    public function pregReplaceCallback ($patt, $callback)
+    public function pregReplaceCallback($patt, $callback)
     {
         $this->raw = preg_replace_callback($patt, $callback, $this->raw);
         return $this;
     }
 
-    public function pregReplaceHash ($replacements)
+    public function pregReplaceHash($replacements)
     {
         if ($replacements) {
             $this->raw = preg_replace(
@@ -101,37 +99,37 @@ class CssCrush_Stream
         return $this;
     }
 
-    public function append ($append)
+    public function append($append)
     {
         $this->raw .= $append;
         return $this;
     }
 
-    public function prepend ($prepend)
+    public function prepend($prepend)
     {
         $this->raw = $prepend . $this->raw;
         return $this;
     }
 
-    public function splice ($replacement, $offset, $length = null)
+    public function splice($replacement, $offset, $length = null)
     {
         $this->raw = substr_replace($this->raw, $replacement, $offset, $length);
         return $this;
     }
 
-    public function trim ()
+    public function trim()
     {
         $this->raw = trim($this->raw);
         return $this;
     }
 
-    public function rTrim ()
+    public function rTrim()
     {
         $this->raw = rtrim($this->raw);
         return $this;
     }
 
-    public function lTrim ()
+    public function lTrim()
     {
         $this->raw = ltrim($this->raw);
         return $this;

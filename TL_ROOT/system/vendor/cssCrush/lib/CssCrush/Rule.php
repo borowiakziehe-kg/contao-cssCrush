@@ -4,11 +4,16 @@
  * CSS rule API.
  *
  */
-class CssCrush_Rule implements IteratorAggregate
+namespace CssCrush;
+
+class Rule implements \IteratorAggregate
 {
     public $vendorContext;
     public $label;
     public $marker;
+    public $name;
+    public $isAbstract;
+    public $isFlat = true;
 
     public $selectors = array();
     public $extendSelectors = array();
@@ -27,43 +32,39 @@ class CssCrush_Rule implements IteratorAggregate
     // Declarations hash table for external query() referencing.
     public $queryData = array();
 
-    public function __construct ($selector_string, $declarations_string, $trace_token = null)
+    public function __construct($selector_string, $declarations_string, $trace_token = null)
     {
-        $regex = CssCrush_Regex::$patt;
         $process = CssCrush::$process;
         $this->label = $process->tokens->createLabel('r');
         $this->marker = $process->addTracingStubs || $process->generateMap ? $trace_token : null;
 
-        if (! empty(CssCrush_Hook::$register['rule_preprocess'])) {
+        if (! empty(Hook::$register['rule_preprocess'])) {
             // Juggling to maintain the old API.
-            // TODO: rework this for 2.x?
-            $rule = new stdClass();
+            $rule = new \stdClass();
             $rule->selector_raw = $selector_string;
             $rule->declaration_raw = $declarations_string;
-            CssCrush_Hook::run('rule_preprocess', $rule);
+            Hook::run('rule_preprocess', $rule);
             $selector_string = $rule->selector_raw;
             $declarations_string = $rule->declaration_raw;
         }
 
         // Parse selectors.
         // Strip any other comments then create selector instances.
-        $selector_string = trim(CssCrush_Util::stripCommentTokens($selector_string));
+        $selector_string = trim(Util::stripCommentTokens($selector_string));
 
-        foreach (CssCrush_Util::splitDelimList($selector_string) as $selector) {
+        foreach (Util::splitDelimList($selector_string) as $selector) {
 
-            // If the selector matches an absract directive
-            if (preg_match($regex->abstract, $selector, $m)) {
-
-                // Link the rule to the abstract name and skip forward to declaration parsing.
-                $process->references[strtolower($m['name'])] = $this;
+            if (preg_match(Regex::$patt->abstract, $selector, $m)) {
+                $this->name = strtolower($m['name']);
+                $this->isAbstract = true;
             }
             else {
-                $this->addSelector(new CssCrush_Selector($selector));
+                $this->addSelector(new Selector($selector));
             }
         }
 
         // Parse rule block.
-        $pairs = CssCrush_Rule::parseBlock($declarations_string);
+        $pairs = Rule::parseBlock($declarations_string);
 
         foreach ($pairs as $index => $pair) {
 
@@ -77,8 +78,9 @@ class CssCrush_Rule implements IteratorAggregate
             }
             elseif ($prop === 'name') {
 
-                // Link the rule as a reference.
-                $process->references[$value] = $this;
+                if (! $this->name) {
+                    $this->name = $value;
+                }
                 unset($pairs[$index]);
             }
         }
@@ -90,19 +92,23 @@ class CssCrush_Rule implements IteratorAggregate
 
             if (trim($value) !== '') {
 
-                // Only store to $this->selfData if the value does not itself make a
-                // this() call to avoid circular references.
-                if (! preg_match($regex->thisFunction, $value)) {
-                    $this->selfData[strtolower($prop)] = $value;
+                if ($prop === 'mixin') {
+                    $this->isFlat = false;
+                    $this->declarations[] = $pair;
                 }
-
-                // Add declaration.
-                $this->addDeclaration($prop, $value, $index);
+                else {
+                    // Only store to $this->selfData if the value does not itself make a
+                    // this() call to avoid circular references.
+                    if (! preg_match(Regex::$patt->thisFunction, $value)) {
+                        $this->selfData[strtolower($prop)] = $value;
+                    }
+                    $this->addDeclaration($prop, $value, $index);
+                }
             }
         }
     }
 
-    public function __toString ()
+    public function __toString()
     {
         $process = CssCrush::$process;
 
@@ -129,14 +135,14 @@ class CssCrush_Rule implements IteratorAggregate
         else {
 
             $formatter = $process->ruleFormatter ?
-                $process->ruleFormatter : 'csscrush__fmtr_block';
+                $process->ruleFormatter : 'CssCrush\fmtr_block';
 
             return "$stub{$formatter($this)}";
         }
     }
 
     public $declarationsProcessed = false;
-    public function processDeclarations ()
+    public function processDeclarations()
     {
         if ($this->declarationsProcessed) {
             return;
@@ -159,7 +165,31 @@ class CssCrush_Rule implements IteratorAggregate
         $this->declarationsProcessed = true;
     }
 
-    public function expandDataSet ($dataset, $property)
+    public function flatten()
+    {
+        if ($this->isFlat) {
+            return;
+        }
+
+        // Flatten mixins.
+        $new_set = array();
+        foreach ($this->declarations as $declaration) {
+            if (is_array($declaration) && $declaration[0] === 'mixin') {
+                foreach (Mixin::merge(array(), $declaration[1], array('context' => $this)) as $pair) {
+                    $new_set[] = new Declaration($pair[0], $pair[1], count($new_set));
+                }
+            }
+            else {
+                $declaration->index = count($new_set);
+                $new_set[] = $declaration;
+            }
+        }
+
+        $this->setDeclarations($new_set);
+        $this->isFlat = true;
+    }
+
+    public function expandDataSet($dataset, $property)
     {
         // Expand shorthand properties to make them available
         // as data for this() and query().
@@ -266,18 +296,18 @@ class CssCrush_Rule implements IteratorAggregate
     #############################
     #  Rule inheritance.
 
-    public function setExtendSelectors ($raw_value)
+    public function setExtendSelectors($raw_value)
     {
         // Reset if called earlier, last call wins by intention.
         $this->extendArgs = array();
 
-        foreach (CssCrush_Util::splitDelimList($raw_value) as $arg) {
-            $this->extendArgs[] = new CssCrush_ExtendArg($arg);
+        foreach (Util::splitDelimList($raw_value) as $arg) {
+            $this->extendArgs[] = new ExtendArg($arg);
         }
     }
 
     public $resolvedExtendables = false;
-    public function resolveExtendables ()
+    public function resolveExtendables()
     {
         if (! $this->extendArgs) {
 
@@ -309,7 +339,7 @@ class CssCrush_Rule implements IteratorAggregate
         return true;
     }
 
-    public function applyExtendables ()
+    public function applyExtendables()
     {
         if (! $this->resolveExtendables()) {
 
@@ -350,13 +380,13 @@ class CssCrush_Rule implements IteratorAggregate
     #############################
     #  Selectors.
 
-    public function expandSelectors ()
+    public function expandSelectors()
     {
         $new_set = array();
 
         static $any_patt, $reg_comma;
         if (! $any_patt) {
-            $any_patt = CssCrush_Regex::create(':any({{p-token}})', 'i');
+            $any_patt = Regex::make('~:any({{p-token}})~i');
             $reg_comma = '~\s*,\s*~';
         }
 
@@ -414,7 +444,7 @@ class CssCrush_Rule implements IteratorAggregate
                 // Finish off.
                 foreach ($chain as &$row) {
 
-                    $new = new CssCrush_Selector($row . $selector->value);
+                    $new = new Selector($row . $selector->value);
                     $new_set[$new->readableValue] = $new;
                 }
             }
@@ -429,24 +459,16 @@ class CssCrush_Rule implements IteratorAggregate
         $this->selectors = $new_set;
     }
 
-    public function addSelector ($selector)
+    public function addSelector($selector)
     {
         $this->selectors[$selector->readableValue] = $selector;
-
-        // Link reference.
-        CssCrush::$process->references[$selector->readableValue] = $this;
-    }
-
-    public function addSelectors ($list, $extend_selectors = false)
-    {
-        $this->selectors += $list;
     }
 
 
     #############################
     #  Aliasing.
 
-    public function addPropertyAliases ()
+    public function addPropertyAliases()
     {
         $aliased_properties =& CssCrush::$process->aliases['properties'];
 
@@ -458,7 +480,7 @@ class CssCrush_Rule implements IteratorAggregate
         $stack = array();
         $rule_updated = false;
         $vendor_context = $this->vendorContext;
-        $regex = CssCrush_Regex::$patt;
+        $regex = Regex::$patt;
 
         foreach ($this->declarations as $declaration) {
 
@@ -515,7 +537,7 @@ class CssCrush_Rule implements IteratorAggregate
         }
     }
 
-    public function addFunctionAliases ()
+    public function addFunctionAliases()
     {
         $function_aliases =& CssCrush::$process->aliases['functions'];
         $function_alias_groups =& CssCrush::$process->aliases['function_groups'];
@@ -587,8 +609,8 @@ class CssCrush_Rule implements IteratorAggregate
                     }
 
                     // Post fixes.
-                    if (isset(CssCrush_PostAliasFix::$functions[$group_id])) {
-                        call_user_func(CssCrush_PostAliasFix::$functions[$group_id], $prefixed_copies, $group_id);
+                    if (isset(PostAliasFix::$functions[$group_id])) {
+                        call_user_func(PostAliasFix::$functions[$group_id], $prefixed_copies, $group_id);
                     }
                 }
 
@@ -599,7 +621,7 @@ class CssCrush_Rule implements IteratorAggregate
 
                         // If the declaration is vendor specific only create aliases for the same vendor.
                         if ($declaration->vendor) {
-                            preg_match(CssCrush_Regex::$patt->vendorPrefix, $fn_alias, $m);
+                            preg_match(Regex::$patt->vendorPrefix, $fn_alias, $m);
                             if (
                                 $m[1] !== $declaration->vendor ||
                                 ($vendor_context && $m[1] !== $vendor_context)
@@ -621,8 +643,8 @@ class CssCrush_Rule implements IteratorAggregate
                     }
 
                     // Post fixes.
-                    if (isset(CssCrush_PostAliasFix::$functions[$fn_name])) {
-                        call_user_func(CssCrush_PostAliasFix::$functions[$fn_name], $prefixed_copies, $fn_name);
+                    if (isset(PostAliasFix::$functions[$fn_name])) {
+                        call_user_func(PostAliasFix::$functions[$fn_name], $prefixed_copies, $fn_name);
                     }
                 }
 
@@ -637,7 +659,7 @@ class CssCrush_Rule implements IteratorAggregate
         }
     }
 
-    public function addDeclarationAliases ()
+    public function addDeclarationAliases()
     {
         $declaration_aliases =& CssCrush::$process->aliases['declarations'];
 
@@ -673,7 +695,7 @@ class CssCrush_Rule implements IteratorAggregate
                             }
 
                             // If the replacement property is null use the original declaration property.
-                            $new = new CssCrush_Declaration(
+                            $new = new Declaration(
                                 ! empty($values[0]) ? $values[0] : $declaration->property,
                                 $values[1]
                                 );
@@ -697,16 +719,16 @@ class CssCrush_Rule implements IteratorAggregate
     #############################
     #  IteratorAggregate interface.
 
-    public function getIterator ()
+    public function getIterator()
     {
-        return new ArrayIterator($this->declarations);
+        return new \ArrayIterator($this->declarations);
     }
 
 
     #############################
     #  Property indexing.
 
-    public function indexProperty ($declaration)
+    public function indexProperty($declaration)
     {
         $prop = $declaration->property;
 
@@ -719,7 +741,7 @@ class CssCrush_Rule implements IteratorAggregate
         $this->canonicalProperties[$declaration->canonicalProperty] = true;
     }
 
-    public function updatePropertyIndex ()
+    public function updatePropertyIndex()
     {
         // Reset tables.
         $this->properties = array();
@@ -734,15 +756,15 @@ class CssCrush_Rule implements IteratorAggregate
     #############################
     #  Rule API.
 
-    public function propertyCount ($prop)
+    public function propertyCount($prop)
     {
         return isset($this->properties[$prop]) ? $this->properties[$prop] : 0;
     }
 
-    public function addDeclaration ($prop, $value, $contextIndex = 0)
+    public function addDeclaration($prop, $value, $contextIndex = 0)
     {
         // Create declaration, add to the stack if it's valid
-        $declaration = new CssCrush_Declaration($prop, $value, $contextIndex);
+        $declaration = new Declaration($prop, $value, $contextIndex);
 
         if (empty($declaration->inValid)) {
 
@@ -754,7 +776,7 @@ class CssCrush_Rule implements IteratorAggregate
         return false;
     }
 
-    public function setDeclarations (array $declaration_stack)
+    public function setDeclarations(array $declaration_stack)
     {
         $this->declarations = $declaration_stack;
 
@@ -762,19 +784,17 @@ class CssCrush_Rule implements IteratorAggregate
         $this->updatePropertyIndex();
     }
 
-    static public function parseBlock ($str, $options = array())
+    public static function parseBlock($str, $options = array())
     {
-        $regex = CssCrush_Regex::$patt;
-        $str = CssCrush_Util::stripCommentTokens($str);
-
+        $str = Util::stripCommentTokens($str);
         $lines = preg_split('~\s*;\s*~', $str, null, PREG_SPLIT_NO_EMPTY);
-        $keyed = isset($options['keyed']);
-        $directives = ! isset($options['ignore_directives']);
+        $keyed = ! empty($options['keyed']);
+        $directives = empty($options['ignore_directives']);
         $out = array();
 
         foreach ($lines as $line) {
 
-            if ($directives && preg_match($regex->ruleDirective, $line, $m)) {
+            if ($directives && preg_match(Regex::$patt->ruleDirective, $line, $m)) {
 
                 if (! empty($m[1])) {
                     $property = 'mixin';
@@ -790,35 +810,21 @@ class CssCrush_Rule implements IteratorAggregate
             elseif (($colon_pos = strpos($line, ':')) !== false) {
 
                 $property = trim(substr($line, 0, $colon_pos));
-
-                // Extract the value part of the declaration.
                 $value = trim(substr($line, $colon_pos + 1));
             }
             else {
                 continue;
             }
 
-            // Empty strings are ignored.
             if (! isset($property[0]) || ! isset($value[0])) {
                 continue;
             }
 
-            // Add any mixins.
-            if ($property === 'mixin') {
-
-                if ($mixables = CssCrush_Mixin::parseValue($value)) {
-
-                    // Add mixin declarations to the stack.
-                    while ($mixable = array_shift($mixables)) {
-                        list($mix_prop, $mix_val) = $mixable;
-                        if ($keyed) {
-                            $out[$mix_prop] = $mix_val;
-                        }
-                        else {
-                            $out[] = array($mix_prop, $mix_val);
-                        }
-                    }
-                }
+            if ($property === 'mixin' && ! empty($options['flatten'])) {
+                $out = Mixin::merge($out, $value, array(
+                    'keyed' => $keyed,
+                    'context' => isset($options['context']) ? $options['context'] : null,
+                ));
             }
             elseif ($keyed) {
                 $out[$property] = $value;

@@ -4,7 +4,9 @@
  *  URL tokens.
  *
  */
-class CssCrush_Url
+namespace CssCrush;
+
+class Url
 {
     public $protocol;
 
@@ -18,12 +20,15 @@ class CssCrush_Url
     public $value;
     public $label;
 
-    public function __construct ($raw_value, $convert_to_data = false)
+    public function __construct($raw_value, $options = array())
     {
-        $regex = CssCrush_Regex::$patt;
-        $tokens = CssCrush::$process->tokens;
+        $standalone = ! empty($options['standalone']);
+        if (! $standalone) {
+            $tokens = CssCrush::$process->tokens;
+            $this->label = $tokens->add($this, 'u');
+        }
 
-        if (preg_match($regex->s_token, $raw_value)) {
+        if (! $standalone && preg_match(Regex::$patt->s_token, $raw_value)) {
             $this->value = trim($tokens->get($raw_value), '\'"');
             $tokens->release($raw_value);
         }
@@ -32,10 +37,9 @@ class CssCrush_Url
         }
 
         $this->evaluate();
-        $this->label = $tokens->add($this, 'u');
     }
 
-    public function __toString ()
+    public function __toString()
     {
         if ($this->convertToData) {
             $this->toData();
@@ -54,12 +58,20 @@ class CssCrush_Url
         return "url($quote$this->value$quote)";
     }
 
-    public function evaluate ()
+    public function update($new_value)
     {
-        // Protocol based url.
-        if (preg_match('~^([a-z]+)\:~i', $this->value, $m)) {
+        $this->value = $new_value;
 
-            $this->protocol = strtolower($m[1]);
+        return $this->evaluate();
+    }
+
+    public function evaluate()
+    {
+        // Protocol or protocol-relative (//) based URL.
+        if (preg_match('~^(?: (?<protocol>[a-z]+)\: | \/{2} )~ix', $this->value, $m)) {
+
+            $this->protocol = ! empty($m['protocol']) ? strtolower($m['protocol']) : 'relative';
+
             switch ($this->protocol) {
                 case 'data':
                     $type = 'data';
@@ -69,8 +81,7 @@ class CssCrush_Url
                     break;
             }
         }
-
-        // Relative and rooted urls.
+        // Relative and rooted URLs.
         else {
             $type = 'relative';
             $leading_variable = strpos($this->value, '$(') === 0;
@@ -91,20 +102,20 @@ class CssCrush_Url
         return $this;
     }
 
-    public function getAbsolutePath ()
+    public function getAbsolutePath()
     {
         $path = false;
         if ($this->protocol) {
             $path = $this->value;
         }
         elseif ($this->isRelative || $this->isRooted) {
-            $path = CssCrush::$config->docRoot .
+            $path = CssCrush::$process->docRoot .
                 ($this->isRelative ? $this->toRoot()->simplify()->value : $this->value);
         }
         return $path;
     }
 
-    public function getOriginalValue ()
+    public function getOriginalValue()
     {
         // If a data URI we assume nothing useful can be achieved
         // by returning the original value so we just return the token label.
@@ -121,20 +132,7 @@ class CssCrush_Url
         return "$function($this->value)";
     }
 
-    public function resolveRootedPath ()
-    {
-        $process = CssCrush::$process;
-
-        if (! file_exists ($process->docRoot . $this->value)) {
-            return false;
-        }
-
-        // Move upwards '..' by the number of slashes in baseURL to get a relative path.
-        $this->value = str_repeat('../', substr_count($process->input->dirUrl, '/')) .
-            substr($this->value, 1);
-    }
-
-    public function prepend ($path_fragment)
+    public function prepend($path_fragment)
     {
         if ($this->isRelative) {
             $this->value = $path_fragment . $this->value;
@@ -143,7 +141,7 @@ class CssCrush_Url
         return $this;
     }
 
-    public function toRoot ()
+    public function toRoot()
     {
         if ($this->isRelative) {
             $this->prepend(CssCrush::$process->input->dirUrl . '/');
@@ -153,7 +151,7 @@ class CssCrush_Url
         return $this;
     }
 
-    public function toData ()
+    public function toData()
     {
         // Only make one conversion attempt.
         $this->convertToData = false;
@@ -194,7 +192,7 @@ class CssCrush_Url
         return $this;
     }
 
-    public function setType ($type = 'absolute')
+    public function setType($type = 'absolute')
     {
         $this->isAbsolute = false;
         $this->isRooted = false;
@@ -220,10 +218,10 @@ class CssCrush_Url
         return $this;
     }
 
-    public function simplify ()
+    public function simplify()
     {
-        if (! $this->isData) {
-            $this->value = CssCrush_Util::simplifyPath($this->value);
+        if ($this->isRelative || $this->isRooted) {
+            $this->value = Util::simplifyPath($this->value);
         }
         return $this;
     }

@@ -4,14 +4,16 @@
  * Token API.
  *
  */
-class CssCrush_Tokens
+namespace CssCrush;
+
+class Tokens
 {
     public $store;
     protected $ids;
 
-    public function __construct ()
+    public function __construct(array $types = null)
     {
-        $types = array(
+        $types = $types ?: array(
             's', // Strings
             'c', // Comments
             'r', // Rules
@@ -20,8 +22,8 @@ class CssCrush_Tokens
             't', // Traces
         );
 
-        $this->store = new stdClass;
-        $this->ids = new stdClass;
+        $this->store = new \stdClass;
+        $this->ids = new \stdClass;
 
         foreach ($types as $type) {
             $this->store->{$type} = array();
@@ -29,58 +31,53 @@ class CssCrush_Tokens
         }
     }
 
-    public function get ($label)
+    public function get($label)
     {
         $path =& $this->store->{$label[1]};
         return isset($path[$label]) ? $path[$label] : null;
     }
 
-    public function pop ($label)
+    public function pop($label)
     {
         $value = $this->get($label);
         $this->release($label);
         return $value;
     }
 
-    public function release ($label)
+    public function release($label)
     {
         unset($this->store->{$label[1]}[$label]);
     }
 
-    public function add ($value, $type, $existing_label = null)
+    public function add($value, $type, $existing_label = null)
     {
         $label = $existing_label ? $existing_label : $this->createLabel($type);
         $this->store->{$type}[$label] = $value;
         return $label;
     }
 
-    public function createLabel ($type)
+    public function createLabel($type)
     {
         $counter = base_convert(++$this->ids->{$type}, 10, 36);
         return "?$type$counter?";
     }
 
-    public function restore ($str, $type, $release = false)
+    public function restore($str, $type, $release = false)
     {
         switch ($type) {
             case 'u':
                 // Currently this always releases URLs
                 // may need to refactor later.
-                static $url_revert_callback;
-                if (! $url_revert_callback) {
-                    $url_revert_callback = create_function('$m', '
-                        $url = CssCrush::$process->tokens->pop($m[0]);
-                        return $url ? $url->getOriginalValue() : \'\';
-                    ');
-                }
-
-                $str = preg_replace_callback(CssCrush_Regex::$patt->u_token, $url_revert_callback, $str);
+                $str = preg_replace_callback(Regex::$patt->u_token, function ($m) {
+                    $url = CssCrush::$process->tokens->pop($m[0]);
+                    return $url ? $url->getOriginalValue() : '';
+                }, $str);
                 break;
             default:
                 $token_table =& $this->store->{$type};
 
                 // Find matching tokens.
-                foreach (CssCrush_Regex::matchAll(CssCrush_Regex::$patt->{"{$type}_token"}, $str) as $m) {
+                foreach (Regex::matchAll(Regex::$patt->{"{$type}_token"}, $str) as $m) {
                     $label = $m[0][0];
                     if (isset($token_table[$label])) {
                         $str = str_replace($label, $token_table[$label], $str);
@@ -95,7 +92,7 @@ class CssCrush_Tokens
         return $str;
     }
 
-    public function capture ($str, $type)
+    public function capture($str, $type)
     {
         switch ($type) {
             case 'u':
@@ -110,33 +107,27 @@ class CssCrush_Tokens
         }
     }
 
-    public function captureParens ($str)
+    public function captureParens($str)
     {
-        static $callback;
-        if (! $callback) {
-            $callback = create_function('$m', 'return CssCrush::$process->tokens->add($m[0], \'p\');');
-        }
-        return preg_replace_callback(CssCrush_Regex::$patt->balancedParens, $callback, $str);
+        return preg_replace_callback(Regex::$patt->parens, function ($m) {
+            return CssCrush::$process->tokens->add($m[0], 'p');
+        }, $str);
     }
 
-    public function captureStrings ($str, $add_padding = false)
+    public function captureStrings($str, $add_padding = false)
     {
-        static $callback;
-        if (! $callback) {
-            $callback = create_function('$m', 'return CssCrush::$process->tokens->add($m[0], \'s\');');
-        }
-        return preg_replace_callback(CssCrush_Regex::$patt->string, $callback, $str);
+        return preg_replace_callback(Regex::$patt->string, function ($m) {
+            return CssCrush::$process->tokens->add($m[0], 's');
+        }, $str);
     }
 
-    public function captureUrls ($str, $add_padding = false)
+    public function captureUrls($str, $add_padding = false)
     {
-        static $url_patt;
-        if (! $url_patt) {
-            $url_patt = CssCrush_Regex::create(
-                '@import \s+ (?<import>{{s-token}}) | {{LB}} (?<func>url|data-uri) {{parens}}', 'ixS');
-        }
-
-        $count = preg_match_all($url_patt, $str, $m, PREG_OFFSET_CAPTURE);
+        $count = preg_match_all(
+            Regex::make('~@import \s+ (?<import>{{s-token}}) | {{LB}} (?<func>url|data-uri) {{parens}}~ixS'),
+            $str,
+            $m,
+            PREG_OFFSET_CAPTURE);
 
         while ($count--) {
 
@@ -146,8 +137,10 @@ class CssCrush_Tokens
             // @import directive.
             if ($import_offset !== -1) {
 
-                $url = new CssCrush_Url(trim($import_text));
-                $str = str_replace($import_text, $add_padding ? str_pad($url->label, strlen($import_text)) : $url->label, $str);
+                $url = new Url(trim($import_text));
+                $str = str_replace(
+                        $import_text,
+                        $add_padding ? str_pad($url->label, strlen($import_text)) : $url->label, $str);
             }
 
             // A URL function.
@@ -155,16 +148,20 @@ class CssCrush_Tokens
 
                 $func_name = strtolower($m['func'][$count][0]);
 
-                $url = new CssCrush_Url(trim($m['parens_content'][$count][0]));
+                $url = new Url(trim($m['parens_content'][$count][0]));
                 $url->convertToData = 'data-uri' === $func_name;
-                $str = substr_replace($str, $add_padding ? CssCrush_Tokens::pad($url->label, $full_text) : $url->label, $full_offset, strlen($full_text));
+                $str = substr_replace(
+                        $str,
+                        $add_padding ? Tokens::pad($url->label, $full_text) : $url->label,
+                        $full_offset,
+                        strlen($full_text));
             }
         }
 
         return $str;
     }
 
-    static public function pad ($label, $replaced_text)
+    public static function pad($label, $replaced_text)
     {
         // Padding token labels to maintain whitespace and newlines.
 
@@ -180,15 +177,13 @@ class CssCrush_Tokens
         return $label;
     }
 
-    static public function is ($label, $of_type)
+    public static function is($label, $of_type)
     {
-        static $type_patt;
-        if (! $type_patt) {
-            $type_patt = CssCrush_Regex::create('^ \? (?<type>[a-z]) {{token-id}} \? $', 'xS');
-        }
-        if (preg_match($type_patt, $label, $m)) {
+        if (preg_match(Regex::make('~^ \? (?<type>[a-zA-Z]) {{token-id}} \? $~xS'), $label, $m)) {
+
             return $of_type ? ($of_type === $m['type']) : true;
         }
+
         return false;
     }
 }

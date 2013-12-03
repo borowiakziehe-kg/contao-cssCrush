@@ -4,18 +4,20 @@
  * Colour parsing and conversion.
  *
  */
-class CssCrush_Color
+namespace CssCrush;
+
+class Color
 {
     // Cached color keyword tables.
-    static public $keywords;
-    static public $minifyableKeywords;
+    public static $keywords;
+    public static $minifyableKeywords;
 
-    static public function &loadKeywords ()
+    public static function &loadKeywords ()
     {
         if (! isset(self::$keywords)) {
 
             $table = array();
-            $path = CssCrush::$config->location . '/misc/color-keywords.ini';
+            $path = CssCrush::$dir . '/misc/color-keywords.ini';
             if ($keywords = parse_ini_file($path)) {
                 foreach ($keywords as $word => $rgb) {
                     $rgb = array_map('intval', explode(',', $rgb));
@@ -27,14 +29,14 @@ class CssCrush_Color
         return self::$keywords;
     }
 
-    static public function &loadMinifyableKeywords ()
+    public static function &loadMinifyableKeywords ()
     {
         if (! isset(self::$minifyableKeywords)) {
 
             // If color name is longer than 4 and less than 8 test to see if its hex
             // representation could be shortened.
             $table = array();
-            $keywords =& CssCrush_Color::loadKeywords();
+            $keywords =& Color::loadKeywords();
 
             foreach ($keywords as $name => &$rgb) {
                 $name_len = strlen($name);
@@ -48,7 +50,7 @@ class CssCrush_Color
                     self::$minifyableKeywords[ $name ] = $hex;
                 }
                 else {
-                    if (preg_match(CssCrush_Regex::$patt->cruftyHex, $hex)) {
+                    if (preg_match(Regex::$patt->cruftyHex, $hex)) {
                         self::$minifyableKeywords[ $name ] = $hex;
                     }
                 }
@@ -58,23 +60,23 @@ class CssCrush_Color
         return self::$minifyableKeywords;
     }
 
-    static public function parse ($str)
+    public static function parse($str)
     {
-        $rgba = false;
-
-        if ($test = CssCrush_Color::test($str)) {
+        if ($test = Color::test($str)) {
             $color = $test['value'];
             $type = $test['type'];
         }
         else {
 
-            return $rgba;
+            return false;
         }
+
+        $rgba = false;
 
         switch ($type) {
 
             case 'hex':
-                $rgba = CssCrush_Color::hexToRgb($color);
+                $rgba = Color::hexToRgb($color);
                 break;
 
             case 'rgb':
@@ -90,10 +92,10 @@ class CssCrush_Color
                 $vals[3] = isset($vals[3]) ? floatval($vals[3]) : 1;
 
                 if (strpos($function, 'rgb') === 0) {
-                    $rgba = CssCrush_Color::normalizeCssRgb($vals);
+                    $rgba = Color::normalizeCssRgb($vals);
                 }
                 else {
-                    $rgba = CssCrush_Color::cssHslToRgb($vals);
+                    $rgba = Color::cssHslToRgb($vals);
                 }
                 break;
 
@@ -109,16 +111,16 @@ class CssCrush_Color
         return $rgba;
     }
 
-    static public function test ($str)
+    public static function test($str)
     {
         static $color_patt;
         if (! $color_patt) {
-            $color_patt = CssCrush_Regex::create('^(
+            $color_patt = Regex::make('~^(
                 \#(?={{hex}}{3}) |
                 \#(?={{hex}}{6}) |
                 rgba?(?=[?(]) |
                 hsla?(?=[?(])
-            )', 'ixS');
+            )~ixS');
         }
 
         $color_test = array();
@@ -168,7 +170,7 @@ class CssCrush_Color
      * Assumes r, g, and b are contained in the set [0, 255] and
      * returns h, s, and l in the set [0, 1].
      */
-    static public function rgbToHsl (array $rgba)
+    public static function rgbToHsl(array $rgba)
     {
         list($r, $g, $b, $a) = $rgba;
         $r /= 255;
@@ -212,7 +214,7 @@ class CssCrush_Color
      * Assumes h, s, and l are contained in the set [0, 1] and
      * returns r, g, and b in the set [0, 255].
      */
-    static public function hslToRgb (array $hsla)
+    public static function hslToRgb(array $hsla)
     {
         // Populate unspecified alpha value.
         if (! isset($hsla[3])) {
@@ -238,7 +240,7 @@ class CssCrush_Color
     }
 
     // Convert percentages to points (0-255).
-    static public function normalizeCssRgb (array $rgba)
+    public static function normalizeCssRgb(array $rgba)
     {
         foreach ($rgba as &$val) {
             if (strpos($val, '%') !== false) {
@@ -250,7 +252,7 @@ class CssCrush_Color
         return $rgba;
     }
 
-    static public function cssHslToRgb (array $hsla)
+    public static function cssHslToRgb(array $hsla)
     {
         // Populate unspecified alpha value.
         if (! isset($hsla[3])) {
@@ -278,7 +280,7 @@ class CssCrush_Color
         return self::hslToRgb(array($h, $s, $l, $a));
     }
 
-    static public function hueToRgb ($p, $q, $t)
+    public static function hueToRgb($p, $q, $t)
     {
         if ($t < 0) $t += 1;
         if ($t > 1) $t -= 1;
@@ -288,7 +290,7 @@ class CssCrush_Color
         return $p;
     }
 
-    static public function rgbToHex (array $rgba)
+    public static function rgbToHex(array $rgba)
     {
         // Drop alpha component.
         array_pop($rgba);
@@ -301,7 +303,7 @@ class CssCrush_Color
         return $hex_out;
     }
 
-    static public function hexToRgb ($hex)
+    public static function hexToRgb($hex)
     {
         $hex = substr($hex, 1);
 
@@ -324,17 +326,17 @@ class CssCrush_Color
         return $rgba;
     }
 
-    static public function colorAdjust ($str, array $adjustments)
+    public static function colorAdjust($str, array $adjustments)
     {
-        $hsla = new CssCrush_Color($str, true);
+        $hsla = new Color($str, true);
 
         // On failure to parse return input.
         return $hsla->isValid ? $hsla->adjust($adjustments)->__toString() : $str;
     }
 
-    static public function colorSplit ($str)
+    public static function colorSplit($str)
     {
-        if ($test = CssCrush_Color::test($str)) {
+        if ($test = Color::test($str)) {
             $color = $test['value'];
             $type = $test['type'];
         }
@@ -349,18 +351,16 @@ class CssCrush_Color
             return array($color, 1);
         }
 
-        static $alpha_color_patt;
-        if (! $alpha_color_patt) {
-            $alpha_color_patt = CssCrush_Regex::create(
-                '^(rgb|hsl)a\(({{number}}%?,{{number}}%?,{{number}}%?),({{number}})\)$');
-        }
-
         // Strip all whitespace.
         $color = preg_replace('~\s+~', '', $color);
 
         // Extract alpha component if one is matched.
         $opacity = 1;
-        if (preg_match($alpha_color_patt, $color, $m)) {
+        if (preg_match(
+                Regex::make('~^(rgb|hsl)a\(({{number}}%?,{{number}}%?,{{number}}%?),({{number}})\)$~i'),
+                $color,
+                $m)
+        ) {
             $opacity = floatval($m[3]);
             $color = "$m[1]($m[2])";
         }
@@ -377,28 +377,35 @@ class CssCrush_Color
     protected $hslColorSpace;
     public $isValid;
 
-    public function __construct ($color, $use_hsl_color_space = false)
+    public function __construct($color, $use_hsl_color_space = false)
     {
         $this->value = is_array($color) ? $color : self::parse($color);
-        $this->isValid = $this->value;
+        $this->isValid = ! empty($this->value);
         if ($use_hsl_color_space && $this->isValid) {
             $this->toHsl();
         }
     }
 
-    public function __toString ()
+    public function __toString()
     {
-        if ($this->value[3] !== 1) {
-
-            return 'rgba(' . implode(',', $this->hslColorSpace ? $this->getRgb() : $this->value) . ')';
-        }
-        else {
+        // For opaque colors return hex notation as it's the most compact.
+        if ($this->value[3] === 1) {
 
             return $this->getHex();
         }
+        else {
+
+            // R, G and B components must be integers.
+            $components = array();
+            foreach (($this->hslColorSpace ? $this->getRgb() : $this->value) as $component_index => $component) {
+                $components[] = $component_index === 3 ? $component : min(round($component), 255);
+            }
+
+            return 'rgba(' . implode(',', $components) . ')';
+        }
     }
 
-    public function toRgb ()
+    public function toRgb()
     {
         if ($this->hslColorSpace) {
             $this->hslColorSpace = false;
@@ -408,7 +415,7 @@ class CssCrush_Color
         return $this;
     }
 
-    public function toHsl ()
+    public function toHsl()
     {
         if (! $this->hslColorSpace) {
             $this->hslColorSpace = true;
@@ -418,36 +425,37 @@ class CssCrush_Color
         return $this;
     }
 
-    public function getHex ()
+    public function getHex()
     {
         return self::rgbToHex($this->getRgb());
     }
 
-    public function getHsl ()
+    public function getHsl()
     {
         return ! $this->hslColorSpace ? self::rgbToHsl($this->value) : $this->value;
     }
 
-    public function getRgb ()
+    public function getRgb()
     {
         return $this->hslColorSpace ? self::hslToRgb($this->value) : $this->value;
     }
 
-    public function getComponent ($index)
+    public function getComponent($index)
     {
         return $this->value[$index];
     }
 
-    public function setComponent ($index, $new_component_value)
+    public function setComponent($index, $new_component_value)
     {
         $this->value[$index] = $new_component_value;
     }
 
-    public function adjust (array $adjustments)
+    public function adjust(array $adjustments)
     {
         $was_hsl_color_space = $this->hslColorSpace;
 
         $this->toHsl();
+
         // Normalize percentage adjustment parameters to floating point numbers.
         foreach ($adjustments as $index => $val) {
 

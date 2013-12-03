@@ -4,7 +4,9 @@
  *  Generalized 'in CSS' templating.
  *
  */
-class CssCrush_Template
+namespace CssCrush;
+
+class Template
 {
     // Positional argument default values.
     public $defaults = array();
@@ -17,54 +19,52 @@ class CssCrush_Template
     // The string passed in with arg calls replaced by tokens.
     public $string;
 
-    public function __construct ($str, $options = array())
+    public function __construct($str, $options = array())
     {
         static $arg_patt;
         if (! $arg_patt) {
-            $arg_patt = CssCrush_Regex::createFunctionPatt(
+            $arg_patt = Regex::makeFunctionPatt(
                 array('arg'), array('templating' => true));
         }
 
-        $str = CssCrush_Template::unTokenize($str);
+        $str = Template::unTokenize($str);
 
         // Parse all arg function calls in the passed string,
         // callback creates default values.
-        CssCrush_Function::executeOnString($str, $arg_patt, array(
-                'arg' => array($this, 'capture'),
-                '#' => array($this, 'capture'),
+        $capture_callback = function ($str)
+        {
+            $args = Functions::parseArgsSimple($str);
+
+            $position = array_shift($args);
+
+            // Match the argument index integer.
+            if (! isset($position) || ! ctype_digit($position)) {
+
+                // On failure to match an integer return empty string.
+                return '';
+            }
+
+            // Store the default value.
+            $default_value = isset($args[0]) ? $args[0] : null;
+
+            if (isset($default_value)) {
+                $this->defaults[$position] = $default_value;
+            }
+
+            // Update the argument count.
+            $argNumber = ((int) $position) + 1;
+            $this->argCount = max($this->argCount, $argNumber);
+
+            return "?a$position?";
+        };
+
+        $this->string = Functions::executeOnString($str, $arg_patt, array(
+                'arg' => $capture_callback,
+                '#' => $capture_callback,
             ));
-
-        $this->string = $str;
     }
 
-    public function capture ($str)
-    {
-        $args = CssCrush_Function::parseArgsSimple($str);
-
-        $position = array_shift($args);
-
-        // Match the argument index integer.
-        if (! isset($position) || ! ctype_digit($position)) {
-
-            // On failure to match an integer return empty string.
-            return '';
-        }
-
-        // Store the default value.
-        $default_value = isset($args[0]) ? $args[0] : null;
-
-        if (isset($default_value)) {
-            $this->defaults[$position] = $default_value;
-        }
-
-        // Update the argument count.
-        $argNumber = ((int) $position) + 1;
-        $this->argCount = max($this->argCount, $argNumber);
-
-        return "?a$position?";
-    }
-
-    public function getArgValue ($index, &$args)
+    public function getArgValue($index, &$args)
     {
         // First lookup a passed value.
         if (isset($args[$index]) && $args[$index] !== 'default') {
@@ -76,7 +76,7 @@ class CssCrush_Template
         $default = isset($this->defaults[$index]) ? $this->defaults[$index] : '';
 
         // Recurse for nested arg() calls.
-        while (preg_match(CssCrush_Regex::$patt->a_token, $default, $m)) {
+        while (preg_match(Regex::$patt->a_token, $default, $m)) {
             $default = str_replace(
                 $m[0],
                 $this->getArgValue((int) $m[1], $args),
@@ -86,7 +86,7 @@ class CssCrush_Template
         return $default;
     }
 
-    public function prepare (array $args, $persist = true)
+    public function prepare(array $args, $persist = true)
     {
         // Create table of substitutions.
         $find = array();
@@ -112,12 +112,7 @@ class CssCrush_Template
         return $substitutions;
     }
 
-    public function reset ()
-    {
-        unset($this->substitutions);
-    }
-
-    public function apply (array $args = null, $str = null)
+    public function apply(array $args = null, $str = null)
     {
         $str = isset($str) ? $str : $this->string;
 
@@ -137,10 +132,10 @@ class CssCrush_Template
         $str = isset($find) ? str_replace($find, $replace, $str) : $str;
 
         // Re-tokenize string on return.
-        return CssCrush_Template::tokenize($str);
+        return Template::tokenize($str);
     }
 
-    static public function tokenize ($str)
+    public static function tokenize($str)
     {
         $str = CssCrush::$process->tokens->capture($str, 's');
         $str = CssCrush::$process->tokens->capture($str, 'u');
@@ -148,7 +143,7 @@ class CssCrush_Template
         return $str;
     }
 
-    static public function unTokenize ($str)
+    public static function unTokenize($str)
     {
         $str = CssCrush::$process->tokens->restore($str, 'u', true);
         $str = CssCrush::$process->tokens->restore($str, 's', true);

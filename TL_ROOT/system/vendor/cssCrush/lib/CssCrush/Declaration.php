@@ -4,7 +4,9 @@
  * Declaration objects.
  *
  */
-class CssCrush_Declaration
+namespace CssCrush;
+
+class Declaration
 {
     public $property;
     public $canonicalProperty;
@@ -14,10 +16,11 @@ class CssCrush_Declaration
     public $index;
     public $skip;
     public $important;
+    public $inValid = false;
 
-    public function __construct ($prop, $value, $contextIndex = 0)
+    public function __construct($prop, $value, $contextIndex = 0)
     {
-        $regex = CssCrush_Regex::$patt;
+        $regex = Regex::$patt;
 
         // Normalize input. Lowercase the property name.
         $prop = strtolower(trim($prop));
@@ -68,7 +71,7 @@ class CssCrush_Declaration
         $this->important         = $important;
     }
 
-    public function __toString ()
+    public function __toString()
     {
         if (CssCrush::$process->minifyOutput) {
             $whitespace = '';
@@ -86,7 +89,7 @@ class CssCrush_Declaration
         Capture parens.
         Index functions.
     */
-    public function process ($parent_rule)
+    public function process($parent_rule)
     {
         // Apply custom functions.
         if (! $this->skip) {
@@ -96,11 +99,11 @@ class CssCrush_Declaration
             $context = (object) array(
                 'rule' => $parent_rule,
             );
-            CssCrush_Function::executeOnString(
+            $this->value = Functions::executeOnString(
                 $this->value,
-                CssCrush_Regex::$patt->thisFunction,
+                Regex::$patt->thisFunction,
                 array(
-                    'this' => 'csscrush_fn__this',
+                    'this' => 'CssCrush\fn__this',
                 ),
                 $context);
 
@@ -111,7 +114,7 @@ class CssCrush_Declaration
                 'rule' => $parent_rule,
                 'property' => $this->property
             );
-            CssCrush_Function::executeOnString(
+            $this->value = Functions::executeOnString(
                 $this->value,
                 null,
                 null,
@@ -137,11 +140,11 @@ class CssCrush_Declaration
         $this->indexFunctions();
     }
 
-    public function indexFunctions ()
+    public function indexFunctions()
     {
         // Create an index of all regular functions in the value.
         $functions = array();
-        if (preg_match_all(CssCrush_Regex::$patt->function, $this->value, $m)) {
+        if (preg_match_all(Regex::$patt->function, $this->value, $m)) {
             foreach ($m[1] as $index => $fn_name) {
                 $functions[strtolower($fn_name)] = true;
             }
@@ -149,7 +152,7 @@ class CssCrush_Declaration
         $this->functions = $functions;
     }
 
-    public function getFullValue ()
+    public function getFullValue()
     {
         return CssCrush::$process->tokens->restore($this->value, 'p');
     }

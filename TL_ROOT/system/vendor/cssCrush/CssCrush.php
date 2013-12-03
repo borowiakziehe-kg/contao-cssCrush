@@ -4,7 +4,7 @@
   * Bootstrap file with autoloader.
   *
   */
-function csscrush_autoload ($class) {
+function csscrush_autoload($class) {
 
     // We're only autoloading this library.
     if (stripos($class, 'csscrush') !== 0) {
@@ -13,15 +13,11 @@ function csscrush_autoload ($class) {
 
     // Tolerate some cases of lowercasing.
     $class = str_ireplace('csscrush', 'CssCrush', $class);
-    $subpath = implode('/', array_map('ucfirst', explode('_', $class)));
+    $subpath = implode('/', array_map('ucfirst', explode('\\', $class)));
 
-    require_once dirname(__FILE__) . "/lib/$subpath.php";
+    require_once __DIR__ . "/lib/$subpath.php";
 }
 
 spl_autoload_register('csscrush_autoload');
-
-
-// Core.php will also be autoloaded with API changes in v2.x.
-require_once 'lib/CssCrush/Core.php';
 
 require_once 'lib/functions.php';

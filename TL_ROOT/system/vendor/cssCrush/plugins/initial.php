@@ -15,26 +15,24 @@
  *     max-height: auto;
  *
  */
+namespace CssCrush;
 
-CssCrush_Plugin::register('initial', array(
-    'enable' => 'csscrush__enable_initial',
-    'disable' => 'csscrush__disable_initial',
+Plugin::register('initial', array(
+    'enable' => function () {
+        Hook::add('rule_prealias', 'CssCrush\initial');
+    },
+    'disable' => function () {
+        Hook::remove('rule_prealias', 'CssCrush\initial');
+    },
 ));
 
-function csscrush__enable_initial () {
-    CssCrush_Hook::add('rule_prealias', 'csscrush__initial');
-}
-
-function csscrush__disable_initial () {
-    CssCrush_Hook::remove('rule_prealias', 'csscrush__initial');
-}
-
-function csscrush__initial (CssCrush_Rule $rule) {
+function initial(Rule $rule) {
 
     static $initial_values;
     if (! $initial_values) {
-        if (! ($initial_values = @parse_ini_file(CssCrush::$config->location . '/misc/initial-values.ini'))) {
-            trigger_error(__METHOD__ . ": Initial keywords file could not be parsed.\n", E_USER_NOTICE);
+        if (! ($initial_values = @parse_ini_file(CssCrush::$dir . '/misc/initial-values.ini'))) {
+            CssCrush::$config->logger->notice("[[CssCrush]] - Initial keywords file could not be parsed.");
+
             return;
         }
     }

@@ -4,14 +4,16 @@
  * Recursive file importing
  *
  */
-class CssCrush_Importer
+namespace CssCrush;
+
+class Importer
 {
-    static public function hostfile ()
+    public static function hostfile()
     {
         $config = CssCrush::$config;
         $process = CssCrush::$process;
         $options = $process->options;
-        $regex = CssCrush_Regex::$patt;
+        $regex = Regex::$patt;
         $input = $process->input;
 
         $str = '';
@@ -52,71 +54,67 @@ class CssCrush_Importer
                 continue;
             }
 
-            // Fetch the URL object.
-            $url = $process->tokens->get($match[1][0]);
+            // Create import object for convenience.
+            $import = new \stdClass();
+            $import->url = $process->tokens->get($match[1][0]);
+            $import->media = trim($match[2][0]);
 
-            // Pass over protocoled import urls.
-            if ($url->protocol) {
+            // Skip import if the import URL is protocoled.
+            if ($import->url->protocol) {
                 $search_offset = $match_end;
                 continue;
             }
 
-            // The media context (if specified).
-            $media_context = trim($match[2][0]);
-
-            // Create import object.
-            $import = (object) array();
-            $import->url = $url;
-            $import->mediaContext = $media_context;
-
-            // Resolve import realpath.
-            if ($url->isRooted) {
+            // Resolve import path information.
+            if ($import->url->isRooted) {
                 $import->path = realpath($process->docRoot . $import->url->value);
             }
             else {
                 $import->path = realpath("$input->dir/{$import->url->value}");
             }
+            $import->dir = dirname($import->path);
 
-            // Get the import contents, if unsuccessful just continue with the import line removed.
+            // If unsuccessful getting import contents continue with the import line removed.
             $import->content = @file_get_contents($import->path);
             if ($import->content === false) {
 
-                CssCrush::log("Import file '{$import->url->value}' not found");
+                $config->logger->debug("Import file '{$import->url->value}' not found");
                 $str = substr_replace($str, '', $match_start, $match_len);
                 continue;
             }
 
-            // Import file opened successfully so we process it:
-            //   - We need to resolve import statement urls in all imported files since
-            //     they will be brought inline with the hostfile
+            // Import file exists so register it.
             $process->sources[] = $import->path;
+            $mtimes[] = filemtime($import->path);
+            $filenames[] = $import->url->value;
 
-            // If there are unmatched brackets inside the import, strip it.
+            // If the import content doesn't pass syntax validation skip to next import.
             if (! self::prepareForStream($import->content)) {
 
                 $str = substr_replace($str, '', $match_start, $match_len);
                 continue;
             }
 
-            $import->dir = dirname($import->url->value);
+            // Resolve a relative link between the import file and the host-file.
+            if ($import->url->isRooted) {
+                $import->relativeDir = Util::getLinkBetweenPaths($import->dir, $input->dir);
+            }
+            else {
+                $import->relativeDir = dirname($import->url->value);
+            }
 
-            // Store import file info for cache validation.
-            $mtimes[] = filemtime($import->path);
-            $filenames[] = $import->url->value;
+            // Alter all embedded import URLs to be relative to the host-file.
+            foreach (Regex::matchAll($regex->import, $import->content) as $m) {
 
-            // Alter all the @import urls to be paths relative to the hostfile.
-            foreach (CssCrush_Regex::matchAll($regex->import, $import->content) as $m) {
+                $nested_url = $process->tokens->get($m[1][0]);
 
-                // Fetch the matched URL.
-                $url2 = $process->tokens->get($m[1][0]);
-
-                // Try to resolve absolute paths.
-                // On failure strip the @import statement.
-                if ($url2->isRooted) {
-                    $url2->resolveRootedPath();
+                // Resolve rooted paths.
+                if ($nested_url->isRooted) {
+                    $link = Util::getLinkBetweenPaths(dirname($nested_url->getAbsolutePath()), $import->dir);
+                    $nested_url->update($link . basename($nested_url->value));
                 }
-                else {
-                    $url2->prepend("$import->dir/");
+                elseif (strlen($import->relativeDir)) {
+                    $nested_url->prepend("$import->relativeDir/");
                 }
             }
 
@@ -125,9 +123,8 @@ class CssCrush_Importer
                 self::rewriteImportedUrls($import);
             }
 
-            // Add media context if it exists.
-            if ($import->mediaContext) {
-                $import->content = "@media $import->mediaContext {{$import->content}}";
+            if ($import->media) {
+                $import->content = "@media $import->media {{$import->content}}";
             }
 
             $str = substr_replace($str, $import->content, $match_start, $match_len);
@@ -143,28 +140,24 @@ class CssCrush_Importer
             );
 
             // Save config changes.
-            $process->ioCall('saveCacheData');
+            $process->io('saveCacheData');
         }
 
         return $str;
     }
 
-    static protected function rewriteImportedUrls ($import)
+    static protected function rewriteImportedUrls($import)
     {
-        static $non_import_urls_patt;
-        if (! $non_import_urls_patt) {
-            $non_import_urls_patt = CssCrush_Regex::create('(?<!@import ){{u-token}}', 'iS');
-        }
-
-        $link = CssCrush_Util::getLinkBetweenPaths(
+        $link = Util::getLinkBetweenPaths(
             CssCrush::$process->input->dir, dirname($import->path));
 
         if (empty($link)) {
+
             return;
         }
 
         // Match all urls that are not imports.
-        preg_match_all($non_import_urls_patt, $import->content, $matches);
+        preg_match_all(Regex::make('~(?<!@import ){{u-token}}~iS'), $import->content, $matches);
 
         foreach ($matches[0] as $token) {
 
@@ -177,9 +170,9 @@ class CssCrush_Importer
         }
     }
 
-    static protected function prepareForStream (&$str)
+    static protected function prepareForStream(&$str)
     {
-        $regex = CssCrush_Regex::$patt;
+        $regex = Regex::$patt;
         $process = CssCrush::$process;
         $tokens = $process->tokens;
 
@@ -191,6 +184,7 @@ class CssCrush_Importer
 
         if (! self::checkSyntax($str)) {
 
+            $str = '';
             return false;
         }
 
@@ -212,44 +206,79 @@ class CssCrush_Importer
 
         self::addMarkers($str);
 
-        $str = CssCrush_Util::normalizeWhiteSpace($str);
+        $str = Util::normalizeWhiteSpace($str);
 
         return true;
     }
 
-    static protected function checkSyntax (&$str)
+    static protected function checkSyntax(&$str)
     {
-        // TODO: add more sophisticated error detection such as line/column of an unmatched bracket.
-
         // Catch obvious typing errors.
-        $parse_errors = array();
+        $errors = false;
         $current_file = 'file://' . end(CssCrush::$process->sources);
         $balanced_parens = substr_count($str, "(") === substr_count($str, ")");
         $balanced_curlies = substr_count($str, "{") === substr_count($str, "}");
 
-        if (! $balanced_parens) {
-            $parse_errors[] = "Unmatched '(' in $current_file.";
-        }
-        if (! $balanced_curlies) {
-            $parse_errors[] = "Unmatched '{' in $current_file.";
-        }
-
-        if ($parse_errors) {
-            foreach ($parse_errors as $error_msg) {
-                CssCrush::logError($error_msg);
-                trigger_error("$error_msg\n", E_USER_WARNING);
+        $validate_pairings = function ($str, $pairing) use ($current_file)
+        {
+            if ($pairing === '{}') {
+                $opener_patt = '~\{~';
+                $balancer_patt = Regex::make('~^{{block}}~');
             }
+            else {
+                $opener_patt = '~\(~';
+                $balancer_patt = Regex::make('~^{{parens}}~');
+            }
+
+            // Find unbalanced opening brackets.
+            preg_match_all($opener_patt, $str, $matches, PREG_OFFSET_CAPTURE);
+            foreach ($matches[0] as $m) {
+                $offset = $m[1];
+                if (! preg_match($balancer_patt, substr($str, $offset), $m)) {
+                    $substr = substr($str, 0, $offset);
+                    $line = substr_count($substr, "\n") + 1;
+                    $column = strlen($substr) - strrpos($substr, "\n");
+                    return "Unbalanced '{$pairing[0]}' in $current_file, Line $line, Column $column.";
+                }
+            }
+
+            // Reverse the stream (and brackets) to find stray closing brackets.
+            $str = strtr(strrev($str), $pairing, strrev($pairing));
+
+            preg_match_all($opener_patt, $str, $matches, PREG_OFFSET_CAPTURE);
+            foreach ($matches[0] as $m) {
+                $offset = $m[1];
+                $substr = substr($str, $offset);
+                if (! preg_match($balancer_patt, $substr, $m)) {
+                    $line = substr_count($substr, "\n") + 1;
+                    $column = strpos($substr, "\n");
+                    return "Stray '{$pairing[1]}' in $current_file, Line $line, Column $column.";
+                }
+            }
+
+            return false;
+        };
+
+        if (! $balanced_curlies) {
+            $errors = true;
+            CssCrush::$config->logger->warning(
+                '[[CssCrush]] - ' . $validate_pairings($str, '{}') ?: "Unbalanced '{' in $current_file.");
+        }
+        if (! $balanced_parens) {
+            $errors = true;
+            CssCrush::$config->logger->warning(
+                '[[CssCrush]] - ' . $validate_pairings($str, '()') ?: "Unbalanced '(' in $current_file.");
         }
 
-        return empty($parse_errors) ? true : false;
+        return $errors ? false : true;
     }
 
-    static protected function addMarkers (&$str)
+    static protected function addMarkers(&$str)
     {
         $process = CssCrush::$process;
         $current_file_index = count($process->sources) -1;
 
-        $count = preg_match_all(CssCrush_Regex::$patt->ruleFirstPass, $str, $matches, PREG_OFFSET_CAPTURE);
+        $count = preg_match_all(Regex::$patt->ruleFirstPass, $str, $matches, PREG_OFFSET_CAPTURE);
         while ($count--) {
 
             $selector_offset = $matches['selector'][$count][1];
@@ -267,53 +296,52 @@ class CssCrush_Importer
                 $point_data[] = strlen($before) - strrpos($before, "\n") - 1;
             }
 
-            // Splice in tracing stub.
+            // Splice in marker token (packing point_data into string is more memory efficient).
             $str = substr_replace(
                 $str,
-                $process->tokens->add($point_data, 't'),
+                $process->tokens->add(implode(',', $point_data), 't'),
                 $selector_offset,
                 0);
         }
     }
 
-    static protected function captureCommentAndString ($str)
+    static protected function captureCommentAndString($str)
     {
-        return preg_replace_callback(CssCrush_Regex::$patt->commentAndString,
-            array('self', 'cb_captureCommentAndString'), $str);
-    }
+        $callback = function ($m) {
 
-    static protected function cb_captureCommentAndString ($match)
-    {
-        $full_match = $match[0];
-        $process = CssCrush::$process;
+            $full_match = $m[0];
+            $process = CssCrush::$process;
 
-        if (strpos($full_match, '/*') === 0) {
+            if (strpos($full_match, '/*') === 0) {
 
-            // Bail without storing comment if output is minified or a private comment.
-            if (
-                $process->minifyOutput ||
-                strpos($full_match, '/*$') === 0
-            ) {
-                return CssCrush_Tokens::pad('', $full_match);
+                // Bail without storing comment if output is minified or a private comment.
+                if (
+                    $process->minifyOutput ||
+                    strpos($full_match, '/*$') === 0
+                ) {
+                    return Tokens::pad('', $full_match);
+                }
+
+                // Fix broken comments as they will break any subsquent
+                // imported files that are inlined.
+                if (! preg_match('~\*/$~', $full_match)) {
+                    $full_match .= '*/';
+                }
+                $label = $process->tokens->add($full_match, 'c');
+            }
+            else {
+
+                // Fix broken strings as they will break any subsquent
+                // imported files that are inlined.
+                if ($full_match[0] !== $full_match[strlen($full_match)-1]) {
+                    $full_match .= $full_match[0];
+                }
+                $label = $process->tokens->add($full_match, 's');
             }
 
-            // Fix broken comments as they will break any subsquent
-            // imported files that are inlined.
-            if (! preg_match('~\*/$~', $full_match)) {
-                $full_match .= '*/';
-            }
-            $label = $process->tokens->add($full_match, 'c');
-        }
-        else {
+            return Tokens::pad($label, $full_match);
+        };
 
-            // Fix broken strings as they will break any subsquent
-            // imported files that are inlined.
-            if ($full_match[0] !== $full_match[strlen($full_match)-1]) {
-                $full_match .= $full_match[0];
-            }
-            $label = $process->tokens->add($full_match, 's');
-        }
-
-        return CssCrush_Tokens::pad($label, $full_match);
+        return preg_replace_callback(Regex::$patt->commentAndString, $callback, $str);
     }
 }

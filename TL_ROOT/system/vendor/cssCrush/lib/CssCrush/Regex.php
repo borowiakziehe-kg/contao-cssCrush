@@ -4,20 +4,22 @@
  * Regex management.
  *
  */
-class CssCrush_Regex
+namespace CssCrush;
+
+class Regex
 {
     // Patterns.
-    static public $patt;
+    public static $patt;
 
     // Character classes.
-    static public $classes;
+    public static $classes;
 
-    static public $classSwaps = array();
+    public static $swaps = array();
 
-    static public function init ()
+    public static function init()
     {
-        self::$patt = $patt = new stdClass();
-        self::$classes = $classes = new stdClass();
+        self::$patt = $patt = new \stdClass();
+        self::$classes = $classes = new \stdClass();
 
         // CSS type classes.
         $classes->ident = '[a-zA-Z0-9_-]+';
@@ -53,7 +55,7 @@ class CssCrush_Regex
 
         // Create standalone class patterns, add classes as class swaps.
         foreach ($classes as $name => $class) {
-            self::$classSwaps['{{' . str_replace('_', '-', $name) . '}}'] = $class;
+            self::$swaps['{{' . str_replace('_', '-', $name) . '}}'] = $class;
             $patt->{$name} = '~' . $class . '~S';
         }
 
@@ -62,19 +64,18 @@ class CssCrush_Regex
         $patt->rooted_number = '~^' . $classes->number . '$~';
 
         // @-rules.
-        $patt->import = CssCrush_Regex::create('@import \s+ ({{u-token}}) \s? ([^;]*);', 'ixS');
-        $patt->charset = CssCrush_Regex::create('@charset \s+ ({{s-token}}) \s*;', 'ixS');
-        $patt->vars = CssCrush_Regex::create('@define \s* {{block}}', 'ixS');
-        $patt->mixin = CssCrush_Regex::create('@mixin \s+ (?<name>{{ident}}) \s* {{block}}', 'ixS');
-        $patt->ifDefine = CssCrush_Regex::create('@ifdefine \s+ (not \s+)? ({{ident}}) \s* \{', 'ixS');
-        $patt->fragmentCapture = CssCrush_Regex::create('@fragment \s+ (?<name>{{ident}}) \s* {{block}}', 'ixS');
-        $patt->fragmentInvoke = CssCrush_Regex::create('@fragment \s+ (?<name>{{ident}}) {{parens}}? \s* ;', 'ixS');
-        $patt->abstract = CssCrush_Regex::create('^@abstract \s+ (?<name>{{ident}})', 'ixS');
+        $patt->import = Regex::make('~@import \s+ ({{u-token}}) \s? ([^;]*);~ixS');
+        $patt->charset = Regex::make('~@charset \s+ ({{s-token}}) \s*;~ixS');
+        $patt->mixin = Regex::make('~@mixin \s+ (?<name>{{ident}}) \s* {{block}}~ixS');
+        $patt->ifDefine = Regex::make('~@ifdefine \s+ (not \s+)? ({{ident}}) \s* \{~ixS');
+        $patt->fragmentCapture = Regex::make('~@fragment \s+ (?<name>{{ident}}) \s* {{block}}~ixS');
+        $patt->fragmentInvoke = Regex::make('~@fragment \s+ (?<name>{{ident}}) {{parens}}? \s* ;~ixS');
+        $patt->abstract = Regex::make('~^@abstract \s+ (?<name>{{ident}})~ixS');
 
         // Functions.
-        $patt->function = CssCrush_Regex::create('{{LB}} ({{ident}}) ({{p-token}})', 'xS');
-        $patt->varFunction = CssCrush_Regex::create('\$\( \s* ({{ident}}) \s* \)', 'xS');
-        $patt->thisFunction = CssCrush_Regex::createFunctionPatt(array('this'));
+        $patt->function = Regex::make('~{{LB}} ({{ident}}) ({{p-token}})~xS');
+        $patt->varFunction = Regex::make('~\$\( \s* ({{ident}}) \s* \)~xS');
+        $patt->thisFunction = Regex::makeFunctionPatt(array('this'));
 
         // Strings and comments.
         $patt->string = '~(\'|")(?:\\\\\1|[^\1])*?\1~xS';
@@ -87,7 +88,7 @@ class CssCrush_Regex
         ~xsS';
 
         // Rules.
-        $patt->ruleFirstPass = CssCrush_Regex::create('
+        $patt->ruleFirstPass = Regex::make('~
             (?:^|(?<=[;{}]))
             (?<before>
                 (?: \s | {{c-token}} )*
@@ -100,53 +101,48 @@ class CssCrush_Regex
                     [^@;{}]+
                 )
             )
-            {{block}}', 'xS');
+            {{block}}
+        ~xS');
 
-        $patt->rule = CssCrush_Regex::create('
+        $patt->rule = Regex::make('~
             (?<trace_token> {{t-token}} )
             \s*
             (?<selector> [^{]+ )
             \s*
-            {{block}}', 'xiS');
-
-        // Balanced bracket matching.
-        $patt->balancedParens  = '~\(\s* ( (?: (?>[^()]+) | (?R) )* ) \s*\)~xS';
-        $patt->balancedCurlies = '~\{\s* ( (?: (?>[^{}]+) | (?R) )* ) \s*\}~xS';
+            {{block}}
+        ~xiS');
 
         // Misc.
         $patt->vendorPrefix = '~^-([a-z]+)-([a-z-]+)~iS';
         $patt->ruleDirective = '~^(?:(@include)|(@extends?)|(@name))[\s]+~iS';
         $patt->argListSplit = '~\s*[,\s]\s*~S';
         $patt->mathBlacklist = '~[^\.0-9\*\/\+\-\(\)]~S';
-        $patt->cruftyHex = CssCrush_Regex::create('\#({{hex}})\1({{hex}})\2({{hex}})\3', 'S');
+        $patt->cruftyHex = Regex::make('~\#({{hex}})\1({{hex}})\2({{hex}})\3~S');
     }
 
-    static public function create ($pattern_template, $flags = '', $delim = '~')
+    public static function make($pattern)
     {
-        static $find, $replace;
-        if (! $find) {
-            $find = array_keys(self::$classSwaps);
-            $replace = array_values(self::$classSwaps);
+        static $cache = array(), $find, $replace;
+        if (isset($cache[$pattern])) {
+
+            return $cache[$pattern];
+        }
+        elseif (! $find) {
+            $find = array_keys(self::$swaps);
+            $replace = array_values(self::$swaps);
         }
 
-        $pattern = str_replace($find, $replace, $pattern_template);
-
-        return "$delim{$pattern}$delim{$flags}";
+        return $cache[$pattern] = str_replace($find, $replace, $pattern);
     }
 
-    static public function matchAll ($patt, $subject, $preprocess_patt = false, $offset = 0)
+    public static function matchAll($patt, $subject, $offset = 0)
     {
-        if ($preprocess_patt) {
-            // Assume case-insensitive.
-            $patt = self::create($patt, 'i');
-        }
-
         $count = preg_match_all($patt, $subject, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER, $offset);
 
         return $count ? $matches : array();
     }
 
-    static public function createFunctionPatt ($list, $options = array())
+    public static function makeFunctionPatt($list, $options = array())
     {
         // Bare parens.
         $question = '';
@@ -156,21 +152,16 @@ class CssCrush_Regex
             $list[] = '-';
         }
 
-        // Escape function names.
-        foreach ($list as &$fn_name) {
-            $fn_name = preg_quote($fn_name);
-        }
-
         // Templating func.
         $template = '';
         if (! empty($options['templating'])) {
             $template = '#|';
         }
 
-        $flat_list = implode('|', $list);
+        $flat_list = implode('|', array_map('preg_quote', $list));
 
-        return CssCrush_Regex::create("($template{{LB}}(?:$flat_list)$question)\(", 'iS');
+        return Regex::make("~($template{{LB}}(?:$flat_list)$question)\(~iS");
     }
 }
 
-CssCrush_Regex::init();
+Regex::init();

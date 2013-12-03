@@ -4,32 +4,34 @@
  *  Plugin API
  * 
  */
-class CssCrush_Plugin
+namespace CssCrush;
+
+class Plugin
 {
     static protected $plugins = array();
 
-    static public function info ()
+    public static function info()
     {
-        $plugin_dirs = CssCrush::$config->plugin_dirs;
+        $plugin_dirs = CssCrush::$config->pluginDirs;
         $plugin_data = array();
 
         foreach ($plugin_dirs as $plugin_dir) {
 
             foreach (glob("$plugin_dir/*.php") as $path) {
                 $name = basename($path, '.php');
-                $plugin_data += array($name => CssCrush_Plugin::parseDoc($path));
+                $plugin_data += array($name => Plugin::parseDoc($path));
             }
         }
 
         return $plugin_data;
     }
 
-    static public function parseDoc ($plugin_path)
+    public static function parseDoc($plugin_path)
     {
         $contents = file_get_contents($plugin_path);
         if (preg_match('~/\*\*(.*?)\*/~s', $contents, $m)) {
 
-            $lines = preg_split(CssCrush_Regex::$patt->newline, $m[1]);
+            $lines = preg_split(Regex::$patt->newline, $m[1]);
             foreach ($lines as &$line) {
                 $line = trim(ltrim($line, "* \t"));
             }
@@ -42,12 +44,12 @@ class CssCrush_Plugin
         return false;
     }
 
-    static public function register ($plugin_name, $callbacks)
+    public static function register($plugin_name, $callbacks)
     {
         self::$plugins[$plugin_name] = $callbacks;
     }
 
-    static public function load ($plugin_name)
+    public static function load($plugin_name)
     {
         // Assume the the plugin file is not loaded if null.
         if (! isset(self::$plugins[$plugin_name])) {
@@ -55,7 +57,7 @@ class CssCrush_Plugin
             $found = false;
 
             // Loop plugin_dirs to find the plugin.
-            foreach (CssCrush::$config->plugin_dirs as $plugin_dir) {
+            foreach (CssCrush::$config->pluginDirs as $plugin_dir) {
 
                 $path = "$plugin_dir/$plugin_name.php";
                 if (file_exists($path)) {
@@ -66,15 +68,14 @@ class CssCrush_Plugin
             }
 
             if (! $found) {
-                trigger_error(__METHOD__ .
-                        ": <b>$plugin_name</b> plugin not found.\n", E_USER_NOTICE);
+                CssCrush::$config->logger->notice("[[CssCrush]] - Plugin '$plugin_name' not found.");
             }
         }
 
         return isset(self::$plugins[$plugin_name]) ? self::$plugins[$plugin_name] : null;
     }
 
-    static public function enable ($plugin_name)
+    public static function enable($plugin_name)
     {
         $plugin = self::load($plugin_name);
 
@@ -85,7 +86,7 @@ class CssCrush_Plugin
         return true;
     }
 
-    static public function disable ($plugin_name)
+    public static function disable($plugin_name)
     {
         $plugin = isset(self::$plugins[$plugin_name]) ? self::$plugins[$plugin_name] : null;
 

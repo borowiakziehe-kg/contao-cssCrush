@@ -4,73 +4,74 @@
  * Custom CSS functions
  *
  */
-class CssCrush_Function
+namespace CssCrush;
+
+class Functions
 {
     // Regex pattern for finding custom functions.
-    static public $functionPatt;
+    public static $functionPatt;
 
-    static public $functions;
+    public static $functions;
 
     static protected $customFunctions = array();
 
     static protected $builtinFunctions = array(
 
         // These functions must come first in this order.
-        'query' => 'csscrush_fn__query',
+        'query' => 'CssCrush\fn__query',
 
         // These functions can be any order.
-        'math' => 'csscrush_fn__math',
-        'percent' => 'csscrush_fn__percent',
-        'pc' => 'csscrush_fn__percent',
-        'hsla-adjust' => 'csscrush_fn__hsla_adjust',
-        'hsl-adjust' => 'csscrush_fn__hsl_adjust',
-        'h-adjust' => 'csscrush_fn__h_adjust',
-        's-adjust' => 'csscrush_fn__s_adjust',
-        'l-adjust' => 'csscrush_fn__l_adjust',
-        'a-adjust' => 'csscrush_fn__a_adjust',
+        'math' => 'CssCrush\fn__math',
+        'percent' => 'CssCrush\fn__percent',
+        'pc' => 'CssCrush\fn__percent',
+        'hsla-adjust' => 'CssCrush\fn__hsla_adjust',
+        'hsl-adjust' => 'CssCrush\fn__hsl_adjust',
+        'h-adjust' => 'CssCrush\fn__h_adjust',
+        's-adjust' => 'CssCrush\fn__s_adjust',
+        'l-adjust' => 'CssCrush\fn__l_adjust',
+        'a-adjust' => 'CssCrush\fn__a_adjust',
     );
 
-    static public function setMatchPatt ()
+    public static function setMatchPatt()
     {
         self::$functions = self::$builtinFunctions + self::$customFunctions;
-        self::$functionPatt = CssCrush_Regex::createFunctionPatt(
+        self::$functionPatt = Regex::makeFunctionPatt(
             array_keys(self::$functions), array('bare_paren' => true));
     }
 
-    static public function executeOnString (&$str, $patt = null, $process_callback = null, stdClass $context = null)
+    public static function executeOnString($str, $patt = null, $process_callback = null, \stdClass $context = null)
     {
         // No bracketed expressions, early return.
         if (strpos($str, '(') === false) {
 
-            return;
+            return $str;
         }
 
         // Set default pattern if not set.
         if (! isset($patt)) {
-            $patt = CssCrush_Function::$functionPatt;
+            $patt = Functions::$functionPatt;
         }
 
         // No custom functions, early return.
         if (! preg_match($patt, $str)) {
 
-            return;
+            return $str;
         }
-
-        // Find custom function matches.
-        $matches = CssCrush_Regex::matchAll($patt, $str);
 
         // Always pass in a context object.
         if (! $context) {
-            $context = new stdClass();
+            $context = new \stdClass();
         }
+
+        // Find custom function matches.
+        $matches = Regex::matchAll($patt, $str);
 
         // Step through the matches from last to first.
         while ($match = array_pop($matches)) {
 
             $offset = $match[0][1];
 
-            if (! preg_match(CssCrush_Regex::$patt->balancedParens,
-                $str, $parens, PREG_OFFSET_CAPTURE, $offset)) {
+            if (! preg_match(Regex::$patt->parens, $str, $parens, PREG_OFFSET_CAPTURE, $offset)) {
                 continue;
             }
 
@@ -86,7 +87,7 @@ class CssCrush_Function
             $closing_paren = $opening_paren + strlen($parens[0][0]);
 
             // Get the function arguments.
-            $raw_args = trim($parens[1][0]);
+            $raw_args = trim($parens['parens_content'][0]);
 
             // Workaround the signs.
             $before_operator = '-' === $raw_fn_name ? '-' : '';
@@ -108,33 +109,35 @@ class CssCrush_Function
             // Splice in the function result.
             $str = substr_replace($str, "$before_operator$func_returns", $offset, $closing_paren - $offset);
         }
+
+        return $str;
     }
 
 
     #############################
     #  API and helpers.
 
-    static public function register ($name, $callback)
+    public static function register($name, $callback)
     {
-        CssCrush_Function::$customFunctions[ $name] = $callback;
+        Functions::$customFunctions[ $name] = $callback;
     }
 
-    static public function deRegister ($name)
+    public static function deRegister($name)
     {
-        unset(CssCrush_Function::$customFunctions[ $name]);
+        unset(Functions::$customFunctions[$name]);
     }
 
-    static public function parseArgs ($input, $allowSpaceDelim = false)
+    public static function parseArgs($input, $allowSpaceDelim = false)
     {
-        return CssCrush_Util::splitDelimList(
+        return Util::splitDelimList(
             $input, ($allowSpaceDelim ? '\s*[,\s]\s*' : ','));
     }
 
     // Intended as a quick arg-list parse for function that take up-to 2 arguments
     // with the proviso the first argument is an ident.
-    static public function parseArgsSimple ($input)
+    public static function parseArgsSimple($input)
     {
-        return preg_split(CssCrush_Regex::$patt->argListSplit, $input, 2);
+        return preg_split(Regex::$patt->argListSplit, $input, 2);
     }
 }
 
@@ -142,7 +145,7 @@ class CssCrush_Function
 #############################
 #  Stock CSS functions.
 
-function csscrush_fn__math ($input) {
+function fn__math($input) {
 
     // Swap in math constants.
     $input = preg_replace(
@@ -151,19 +154,19 @@ function csscrush_fn__math ($input) {
         $input);
 
     // Strip blacklisted characters.
-    $input = preg_replace(CssCrush_Regex::$patt->mathBlacklist, '', $input);
+    $input = preg_replace(Regex::$patt->mathBlacklist, '', $input);
 
     $result = @eval("return $input;");
 
     return $result === false ? 0 : round($result, 5);
 }
 
-function csscrush_fn__percent ($input) {
+function fn__percent($input) {
 
     // Strip non-numeric and non delimiter characters
     $input = preg_replace('~[^\d\.\s,]~S', '', $input);
 
-    $args = preg_split(CssCrush_Regex::$patt->argListSplit, $input, -1, PREG_SPLIT_NO_EMPTY);
+    $args = preg_split(Regex::$patt->argListSplit, $input, -1, PREG_SPLIT_NO_EMPTY);
 
     // Use precision argument if it exists, use default otherwise
     $precision = isset($args[2]) ? $args[2] : 5;
@@ -200,39 +203,39 @@ function csscrush_fn__percent ($input) {
     return $result . '%';
 }
 
-function csscrush_fn__hsla_adjust ($input) {
-    list($color, $h, $s, $l, $a) = array_pad(CssCrush_Function::parseArgs($input, true), 5, 0);
-    return CssCrush_Color::colorAdjust($color, array($h, $s, $l, $a));
+function fn__hsla_adjust($input) {
+    list($color, $h, $s, $l, $a) = array_pad(Functions::parseArgs($input, true), 5, 0);
+    return Color::colorAdjust($color, array($h, $s, $l, $a));
 }
 
-function csscrush_fn__hsl_adjust ($input) {
-    list($color, $h, $s, $l) = array_pad(CssCrush_Function::parseArgs($input, true), 4, 0);
-    return CssCrush_Color::colorAdjust($color, array($h, $s, $l, 0));
+function fn__hsl_adjust($input) {
+    list($color, $h, $s, $l) = array_pad(Functions::parseArgs($input, true), 4, 0);
+    return Color::colorAdjust($color, array($h, $s, $l, 0));
 }
 
-function csscrush_fn__h_adjust ($input) {
-    list($color, $h) = array_pad(CssCrush_Function::parseArgs($input, true), 2, 0);
-    return CssCrush_Color::colorAdjust($color, array($h, 0, 0, 0));
+function fn__h_adjust($input) {
+    list($color, $h) = array_pad(Functions::parseArgs($input, true), 2, 0);
+    return Color::colorAdjust($color, array($h, 0, 0, 0));
 }
 
-function csscrush_fn__s_adjust ($input) {
-    list($color, $s) = array_pad(CssCrush_Function::parseArgs($input, true), 2, 0);
-    return CssCrush_Color::colorAdjust($color, array(0, $s, 0, 0));
+function fn__s_adjust($input) {
+    list($color, $s) = array_pad(Functions::parseArgs($input, true), 2, 0);
+    return Color::colorAdjust($color, array(0, $s, 0, 0));
 }
 
-function csscrush_fn__l_adjust ($input) {
-    list($color, $l) = array_pad(CssCrush_Function::parseArgs($input, true), 2, 0);
-    return CssCrush_Color::colorAdjust($color, array(0, 0, $l, 0));
+function fn__l_adjust($input) {
+    list($color, $l) = array_pad(Functions::parseArgs($input, true), 2, 0);
+    return Color::colorAdjust($color, array(0, 0, $l, 0));
 }
 
-function csscrush_fn__a_adjust ($input) {
-    list($color, $a) = array_pad(CssCrush_Function::parseArgs($input, true), 2, 0);
-    return CssCrush_Color::colorAdjust($color, array(0, 0, 0, $a));
+function fn__a_adjust($input) {
+    list($color, $a) = array_pad(Functions::parseArgs($input, true), 2, 0);
+    return Color::colorAdjust($color, array(0, 0, 0, $a));
 }
 
-function csscrush_fn__this ($input, $context) {
+function fn__this($input, $context) {
 
-    $args = CssCrush_Function::parseArgsSimple($input);
+    $args = Functions::parseArgsSimple($input);
     $property = $args[0];
 
     // Function relies on a context rule, bail if none.
@@ -257,9 +260,9 @@ function csscrush_fn__this ($input, $context) {
     return '';
 }
 
-function csscrush_fn__query ($input, $context) {
+function fn__query($input, $context) {
 
-    $args = CssCrush_Function::parseArgs($input);
+    $args = Functions::parseArgs($input);
 
     // Function relies on a context property, bail if none.
     if (count($args) < 1 || ! isset($context->property)) {
@@ -284,8 +287,8 @@ function csscrush_fn__query ($input, $context) {
     }
     $default = isset($args[0]) ? $args[0] : null;
 
-    if (! preg_match(CssCrush_Regex::$patt->rooted_ident, $name)) {
-        $name = CssCrush_Selector::makeReadable($name);
+    if (! preg_match(Regex::$patt->rooted_ident, $name)) {
+        $name = Selector::makeReadable($name);
     }
 
     // If a rule reference is found, query its data.

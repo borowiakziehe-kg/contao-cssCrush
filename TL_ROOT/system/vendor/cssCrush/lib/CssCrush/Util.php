@@ -4,26 +4,55 @@
  *  General utilities.
  *
  */
-class CssCrush_Util
+namespace CssCrush;
+
+class Util
 {
-    /*
-     * Create html attribute string from array.
-     */
-    static public function htmlAttributes (array $attributes)
+    public static function htmlAttributes(array $attributes, array $sort_order = null)
     {
-        $attr_string = '';
+        // Optionally sort attributes (for better readability).
+        if ($sort_order) {
+            uksort($attributes, function ($a, $b) use ($sort_order) {
+                $a_index = array_search($a, $sort_order);
+                $b_index = array_search($b, $sort_order);
+                $a_found = is_int($a_index);
+                $b_found = is_int($b_index);
+
+                if ($a_found && $b_found) {
+                    if ($a_index == $b_index) {
+                        return 0;
+                    }
+                    return $a_index > $b_index ? 1 : -1;
+                }
+                elseif ($a_found && ! $b_found) {
+                    return -1;
+                }
+                elseif ($b_found && ! $a_found) {
+                    return 1;
+                }
+
+                return strcmp($a, $b);
+            });
+        }
+
+        $str = '';
         foreach ($attributes as $name => $value) {
             $value = htmlspecialchars($value, ENT_COMPAT, 'UTF-8', false);
-            $attr_string .= " $name=\"$value\"";
+            $str .= " $name=\"$value\"";
         }
-        return $attr_string;
+        return $str;
     }
 
-    static public function normalizePath ($path, $strip_drive_letter = false)
+    public static function normalizePath($path, $strip_drive_letter = false)
     {
+        if (! $path) {
+            return '';
+        }
+
         if ($strip_drive_letter) {
             $path = preg_replace('~^[a-z]\:~i', '', $path);
         }
+
         // Backslashes and repeat slashes to a single forward slash.
         $path = rtrim(preg_replace('~[\\\\/]+~', '/', $path), '/');
 
@@ -33,13 +62,12 @@ class CssCrush_Util
             $path = substr($path, 2);
         }
 
-        return CssCrush_Util::simplifyPath($path);
+        return Util::simplifyPath($path);
     }
 
-    static public function simplifyPath ($path)
+    public static function simplifyPath($path)
     {
-        // Reduce redundant path segments (issue #32):
-        // e.g 'foo/../bar' => 'bar'
+        // Reduce redundant path segments. e.g 'foo/../bar' => 'bar'
         $patt = '~[^/.]+/\.\./~S';
         while (preg_match($patt, $path)) {
             $path = preg_replace($patt, '', $path);
@@ -47,23 +75,42 @@ class CssCrush_Util
         return $path;
     }
 
-    static public function find ()
+    public static function resolveUserPath($path, $recovery = null)
     {
-        foreach (func_get_args() as $file) {
-            $file_path = CssCrush::$config->location . '/' . $file;
-            if (file_exists($file_path)) {
-                return $file_path;
-            }
+        // System path.
+        if ($realpath = realpath($path)) {
+            $path = $realpath;
         }
-        return false;
+        else {
+            $doc_root = isset(CssCrush::$process) ? CssCrush::$process->docRoot : CssCrush::$config->docRoot;
+
+            // Absolute path.
+            if (strpos($path, '/') === 0) {
+                // If $path is not doc_root based assume it's doc_root relative and prepend doc_root.
+                if (strpos($path, $doc_root) !== 0) {
+                    $path = $doc_root . $path;
+                }
+            }
+            // Relative path. Try resolving based on the directory of the executing script.
+            else {
+                $path = CssCrush::$config->scriptDir . '/' . $path;
+            }
+
+            if (! file_exists($path) && is_callable($recovery)) {
+                $path = call_user_func($recovery, $path);
+            }
+            $path = realpath($path);
+        }
+
+        return $path ? Util::normalizePath($path) : false;
     }
 
-    static public function stripCommentTokens ($str)
+    public static function stripCommentTokens($str)
     {
-        return preg_replace(CssCrush_Regex::$patt->c_token, '', $str);
+        return preg_replace(Regex::$patt->c_token, '', $str);
     }
 
-    static public function normalizeWhiteSpace ($str)
+    public static function normalizeWhiteSpace($str)
     {
         static $find, $replace;
         if (! $find) {
@@ -82,7 +129,7 @@ class CssCrush_Util
         return preg_replace($find, $replace, $str);
     }
 
-    static public function splitDelimList ($str, $delim = ',')
+    public static function splitDelimList($str, $delim = ',')
     {
         $do_preg_split = strlen($delim) > 1;
         $str = trim($str);
@@ -91,7 +138,7 @@ class CssCrush_Util
             return strlen($str) ? array($str) : array();
         }
 
-        if ($match_count = preg_match_all(CssCrush_Regex::$patt->balancedParens, $str, $matches)) {
+        if ($match_count = preg_match_all(Regex::$patt->parens, $str, $matches)) {
             $keys = array();
             foreach ($matches[0] as $index => &$value) {
                 $keys[] = "?$index?";
@@ -111,13 +158,11 @@ class CssCrush_Util
         return array_filter(array_map('trim', $list), 'strlen');
     }
 
-    static public function getLinkBetweenPaths ($path1, $path2, $directories = true)
+    public static function getLinkBetweenPaths($path1, $path2, $directories = true)
     {
-        // Normalise the paths.
-        $path1 = trim(CssCrush_Util::normalizePath($path1, true), '/');
-        $path2 = trim(CssCrush_Util::normalizePath($path2, true), '/');
+        $path1 = trim(Util::normalizePath($path1, true), '/');
+        $path2 = trim(Util::normalizePath($path2, true), '/');
 
-        // The link between.
         $link = '';
 
         if ($path1 != $path2) {
@@ -137,7 +182,7 @@ class CssCrush_Util
 
         $link = $link !== '' ? rtrim($link, '/') : '';
 
-        // Add end slash if getting a link between directories.
+        // Append end slash if getting a link between directories.
         if ($link && $directories) {
             $link .= '/';
         }
@@ -145,15 +190,13 @@ class CssCrush_Util
         return $link;
     }
 
-    static public function filePutContents ($file, $str, $caller = null)
+    public static function filePutContents($file, $str)
     {
         if (@file_put_contents($file, $str, LOCK_EX)) {
 
             return true;
         }
-        $error = "Could not write file '$file'.";
-        CssCrush::logError($error);
-        trigger_error(($caller ? $caller : __METHOD__) . ": $error\n", E_USER_WARNING);
+        CssCrush::$config->logger->warning("[[CssCrush]] - Could not write file '$file'.");
 
         return false;
     }
@@ -161,7 +204,7 @@ class CssCrush_Util
     /*
      * Encode integer to Base64 VLQ.
      */
-    static public function vlqEncode ($value)
+    public static function vlqEncode($value)
     {
         static $VLQ_BASE_SHIFT, $VLQ_BASE, $VLQ_BASE_MASK, $VLQ_CONTINUATION_BIT, $BASE64_MAP;
         if (! $VLQ_BASE_SHIFT) {

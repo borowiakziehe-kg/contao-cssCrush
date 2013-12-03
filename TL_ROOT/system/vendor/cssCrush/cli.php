@@ -36,28 +36,29 @@ if ($version < $required_version) {
 
 $required_value_opts = array(
     'i|input|f|file', // Input file. Defaults to STDIN.
-    'o|output',       // Output file. Defaults to STDOUT.
-    'E|enable' ,      // List of plugins to enable.
-    'D|disable',      // List of plugins to disable.
-    'vars|variables', // Map of variable names in an http query string format.
-    'formatter',      // Formatter name for formatted output.
-    'vendor-target',  // Vendor target.
-    'context',        // Context for resolving URLs.
-    'newlines',       // Newline style.
+    'o|output', // Output file. Defaults to STDOUT.
+    'E|enable' ,
+    'D|disable',
+    'vars|variables',
+    'formatter',
+    'vendor-target',
+    'context',
+    'newlines',
 );
 
 $optional_value_opts = array(
-    'b|boilerplate', // Boilerplate.
-    'trace',         // Debug info.
+    'b|boilerplate',
+    'stat-dump',
+    'trace',
 );
 
 $flag_opts = array(
-    'p|pretty',   // Pretty output.
-    'w|watch',    // Watch mode.
-    'list',       // List plugins.
-    'help',       // Display help.
-    'version',    // Display version.
-    'source-map', // Display version.
+    'p|pretty',
+    'w|watch',
+    'list',
+    'help',
+    'version',
+    'source-map',
 );
 
 // Create option strings for getopt().
@@ -82,7 +83,6 @@ $join_opts($flag_opts, '');
 
 // Parse opts.
 $opts = getopt(implode($short_opts), $long_opts);
-
 $args = new stdClass();
 
 // File arguments.
@@ -100,6 +100,7 @@ $args->source_map = isset($opts['source-map']);
 
 // Arguments that optionally accept a single value.
 $args->boilerplate = pick($opts, 'b', 'boilerplate');
+$args->stat_dump = pick($opts, 'stat-dump');
 $args->trace = pick($opts, 'trace');
 
 // Arguments that require a single value.
@@ -129,7 +130,7 @@ if (! $args->output_file && $trailing_output_file) {
 
 if ($args->version) {
 
-    stdout('CSS-Crush ' . csscrush_version());
+    stdout('v' . csscrush_version());
 
     exit(STATUS_OK);
 }
@@ -143,7 +144,7 @@ elseif ($args->list) {
 
     $plugins = array();
 
-    foreach (CssCrush_Plugin::info() as $name => $docs) {
+    foreach (CssCrush\Plugin::info() as $name => $docs) {
         // Use first line of plugin doc for description.
         $headline = isset($docs[0]) ? $docs[0] : false;
         $plugins[] = colorize("<g>$name</>" . ($headline ? " - $headline" : ''));
@@ -193,7 +194,6 @@ if (is_string($args->boilerplate)) {
         exit(STATUS_ERROR);
     }
 }
-
 
 // Run multiple value arguments through array cast.
 foreach (array('enable_plugins', 'disable_plugins', 'vendor_target') as $arg) {
@@ -267,6 +267,10 @@ if ($args->trace) {
     $process_opts['trace'] = is_array($args->trace) ? parse_list($args->trace) : true;
 }
 
+if ($args->stat_dump) {
+    $process_opts['stat_dump'] = $args->stat_dump;
+}
+
 if ($args->vendor_target) {
     $process_opts['vendor_target'] = parse_list($args->vendor_target);
 }
@@ -295,13 +299,14 @@ if ($args->output_file) {
     $process_opts['output_file'] = basename($args->output_file);
 }
 
+
 ##################################################################
 ##  Output.
 
 if ($args->watch) {
 
     // Override the IO class.
-    csscrush_set('config', array('io' => 'CssCrush_IOWatch'));
+    csscrush_set('config', array('io' => 'CssCrush\IO\Watch'));
 
     stdout('CONTROL-C to quit.');
 
@@ -357,12 +362,12 @@ else {
 ##################################################################
 ##  Helpers.
 
-function stderr ($lines, $closing_newline = true) {
+function stderr($lines, $closing_newline = true) {
     $out = implode(PHP_EOL, (array) $lines) . ($closing_newline ? PHP_EOL : '');
     fwrite(STDERR, $out);
 }
 
-function stdout ($lines, $closing_newline = true) {
+function stdout($lines, $closing_newline = true) {
     $out = implode(PHP_EOL, (array) $lines) . ($closing_newline ? PHP_EOL : '');
 
     // On OSX terminal is sometimes truncating 'visual' output to terminal
@@ -370,7 +375,7 @@ function stdout ($lines, $closing_newline = true) {
     echo $out;
 }
 
-function get_stdin_contents () {
+function get_stdin_contents() {
     $stdin = fopen('php://stdin', 'r');
     stream_set_blocking($stdin, false);
     $stdin_contents = stream_get_contents($stdin);
@@ -379,7 +384,7 @@ function get_stdin_contents () {
     return $stdin_contents;
 }
 
-function parse_list (array $option) {
+function parse_list(array $option) {
 
     $out = array();
     foreach ($option as $arg) {
@@ -395,7 +400,7 @@ function parse_list (array $option) {
     return $out;
 }
 
-function format_stats ($stats) {
+function format_stats($stats) {
     $out = array();
     foreach ($stats as $name => $value) {
         if (is_scalar($value)) {
@@ -405,7 +410,7 @@ function format_stats ($stats) {
     return implode(PHP_EOL, $out);
 }
 
-function pick (array &$arr) {
+function pick(array &$arr) {
 
     $args = func_get_args();
     array_shift($args);
@@ -419,7 +424,7 @@ function pick (array &$arr) {
     return null;
 }
 
-function colorize ($str) {
+function colorize($str) {
 
     static $color_support;
     static $tags = array(
@@ -457,7 +462,7 @@ function colorize ($str) {
     return str_replace($find, $replace, $str);
 }
 
-function get_trailing_io_args () {
+function get_trailing_io_args() {
 
     $trailing_input_file = null;
     $trailing_output_file = null;
@@ -508,7 +513,7 @@ function get_trailing_io_args () {
     return array($trailing_input_file, $trailing_output_file);
 }
 
-function manpage () {
+function manpage() {
 
     $manpage = <<<TPL
 
@@ -545,8 +550,7 @@ function manpage () {
         taking raw input from STDIN.
 
     <g>--formatter</>:
-        Formatter to use for formatted (<g>--pretty</>) output.
-        Available formatters:
+        Formatting styles.
 
         'block' (default) -
             Rules are block formatted.
