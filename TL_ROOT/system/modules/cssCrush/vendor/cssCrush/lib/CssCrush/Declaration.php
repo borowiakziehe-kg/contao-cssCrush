@@ -14,39 +14,29 @@ class Declaration
     public $functions;
     public $value;
     public $index;
-    public $skip;
-    public $important;
-    public $inValid = false;
+    public $skip = false;
+    public $important = false;
+    public $valid = true;
 
-    public function __construct($prop, $value, $contextIndex = 0)
+    public function __construct($property, $value, $contextIndex = 0)
     {
-        $regex = Regex::$patt;
-
-        // Normalize input. Lowercase the property name.
-        $prop = strtolower(trim($prop));
-        $value = trim($value);
-
-        // Check the input.
-        if ($prop === '' || $value === '' || $value === null) {
-            $this->inValid = true;
-
-            return;
-        }
+        // Normalize the property name.
+        $property = strtolower($property);
 
         // Test for escape tilde.
-        if ($skip = strpos($prop, '~') === 0) {
-            $prop = substr($prop, 1);
+        if ($skip = strpos($property, '~') === 0) {
+            $property = substr($property, 1);
         }
 
         // Store the canonical property name.
         // Store the vendor mark if one is present.
-        if (preg_match($regex->vendorPrefix, $prop, $vendor)) {
+        if (preg_match(Regex::$patt->vendorPrefix, $property, $vendor)) {
             $canonical_property = $vendor[2];
             $vendor = $vendor[1];
         }
         else {
             $vendor = null;
-            $canonical_property = $prop;
+            $canonical_property = $property;
         }
 
         // Check for !important.
@@ -55,25 +45,25 @@ class Declaration
             $important = true;
         }
 
+        Crush::$process->hooks->run('declaration_preprocess', array('property' => &$property, 'value' => &$value));
+
         // Reject declarations with empty CSS values.
         if ($value === false || $value === '') {
-            $this->inValid = true;
-
-            return;
+            $this->valid = false;
         }
 
-        $this->property          = $prop;
+        $this->property = $property;
         $this->canonicalProperty = $canonical_property;
-        $this->vendor            = $vendor;
-        $this->index             = $contextIndex;
-        $this->value             = $value;
-        $this->skip              = $skip;
-        $this->important         = $important;
+        $this->vendor = $vendor;
+        $this->index = $contextIndex;
+        $this->value = $value;
+        $this->skip = $skip;
+        $this->important = $important;
     }
 
     public function __toString()
     {
-        if (CssCrush::$process->minifyOutput) {
+        if (Crush::$process->minifyOutput) {
             $whitespace = '';
         }
         else {
@@ -107,8 +97,7 @@ class Declaration
                 ),
                 $context);
 
-            // Add result to $rule->selfData.
-            $parent_rule->selfData += array($this->property => $this->value);
+            $parent_rule->declarations->data += array($this->property => $this->value);
 
             $context = (object) array(
                 'rule' => $parent_rule,
@@ -127,15 +116,12 @@ class Declaration
         // After functions have applied value may be empty.
         if ($this->value === '') {
 
-            $this->inValid = true;
+            $this->valid = false;
             return;
         }
 
-        // Store raw value as data on the parent rule.
-        $parent_rule->queryData[$this->property] = $this->value;
-
-        // Capture top-level paren pairs.
-        $this->value = CssCrush::$process->tokens->captureParens($this->value);
+        // Store value as data on the parent rule.
+        $parent_rule->declarations->queryData[$this->property] = $this->value;
 
         $this->indexFunctions();
     }
@@ -144,16 +130,11 @@ class Declaration
     {
         // Create an index of all regular functions in the value.
         $functions = array();
-        if (preg_match_all(Regex::$patt->function, $this->value, $m)) {
-            foreach ($m[1] as $index => $fn_name) {
+        if (preg_match_all(Regex::$patt->functionTest, $this->value, $m)) {
+            foreach ($m['func_name'] as $index => $fn_name) {
                 $functions[strtolower($fn_name)] = true;
             }
         }
         $this->functions = $functions;
-    }
-
-    public function getFullValue()
-    {
-        return CssCrush::$process->tokens->restore($this->value, 'p');
     }
 }

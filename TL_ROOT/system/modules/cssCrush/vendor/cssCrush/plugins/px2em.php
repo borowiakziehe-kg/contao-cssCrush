@@ -2,16 +2,7 @@
 /**
  * Functions for converting pixel values into em (px2em) or rem (px2rem) values
  *
- * For both functions the optional second argument is base font-size for calculation
- * (16px by default) though usually not required when converting pixel to rem.
- *
- * @before
- *     font-size: px2em(11 13);
- *     font-size: px2rem(16);
- *
- * @after
- *     font-size: .84615em;
- *     font-size: 1rem;
+ * @see docs/plugins/px2em.md
  */
 namespace CssCrush;
 
@@ -29,34 +20,17 @@ Plugin::register('px2em', array(
 
 function fn__px2em($input) {
 
-    $base = 16;
-
-    // Override default base if variable is set.
-    if (isset(CssCrush::$process->vars['px2em__base'])) {
-        $base = CssCrush::$process->vars['px2em__base'];
-    }
-
-    return px2em($input, 'em', $base);
+    return px2em($input, 'em', Crush::$process->settings->get('px2em-base', 16));
 }
 
 function fn__px2rem($input) {
 
-    $base = 16;
-
-    // Override default base if variable is set.
-    if (isset(CssCrush::$process->vars['px2rem__base'])) {
-        $base = CssCrush::$process->vars['px2rem__base'];
-    }
-
-    return px2em($input, 'rem', $base);
+    return px2em($input, 'rem', Crush::$process->settings->get('px2rem-base', 16));
 }
 
 function px2em($input, $unit, $default_base) {
 
-    list($px, $base) = Functions::parseArgsSimple($input) + array(
-        16,
-        $default_base,
-    );
+    list($px, $base) = Functions::parseArgsSimple($input) + array(16, $default_base);
 
     return round($px / $base, 5) . $unit;
 }

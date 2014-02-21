@@ -98,12 +98,13 @@ class Functions
             // First look for function as directly passed.
             if (isset($process_callback[$fn_name])) {
 
-                $func_returns = call_user_func($process_callback[$fn_name], $raw_args, $context);
+                $func_returns = $process_callback[$fn_name]($raw_args, $context);
             }
             // Secondly look for built-in function.
             elseif (isset(self::$functions[$fn_name])) {
 
-                $func_returns = call_user_func(self::$functions[$fn_name], $raw_args, $context);
+                $func = self::$functions[$fn_name];
+                $func_returns = $func($raw_args, $context);
             }
 
             // Splice in the function result.
@@ -119,7 +120,7 @@ class Functions
 
     public static function register($name, $callback)
     {
-        Functions::$customFunctions[ $name] = $callback;
+        Functions::$customFunctions[$name] = $callback;
     }
 
     public static function deRegister($name)
@@ -244,11 +245,11 @@ function fn__this($input, $context) {
     }
     $rule = $context->rule;
 
-    $rule->expandDataSet('selfData', $property);
+    $rule->declarations->expandData('data', $property);
 
-    if (isset($rule->selfData[$property])) {
+    if (isset($rule->declarations->data[$property])) {
 
-        return $rule->selfData[$property];
+        return $rule->declarations->data[$property];
     }
 
     // Fallback value.
@@ -270,7 +271,7 @@ function fn__query($input, $context) {
     }
 
     $call_property = $context->property;
-    $references =& CssCrush::$process->references;
+    $references =& Crush::$process->references;
 
     // Resolve arguments.
     $name = array_shift($args);
@@ -295,11 +296,11 @@ function fn__query($input, $context) {
     $result = '';
     if (isset($references[$name])) {
         $query_rule = $references[$name];
-        $query_rule->processDeclarations();
-        $query_rule->expandDataSet('queryData', $property);
+        $query_rule->declarations->process($query_rule);
+        $query_rule->declarations->expandData('queryData', $property);
 
-        if (isset($query_rule->queryData[$property])) {
-            $result = $query_rule->queryData[$property];
+        if (isset($query_rule->declarations->queryData[$property])) {
+            $result = $query_rule->declarations->queryData[$property];
         }
     }
 

@@ -10,8 +10,8 @@ class Importer
 {
     public static function hostfile()
     {
-        $config = CssCrush::$config;
-        $process = CssCrush::$process;
+        $config = Crush::$config;
+        $process = Crush::$process;
         $options = $process->options;
         $regex = Regex::$patt;
         $input = $process->input;
@@ -78,7 +78,7 @@ class Importer
             $import->content = @file_get_contents($import->path);
             if ($import->content === false) {
 
-                $config->logger->debug("Import file '{$import->url->value}' not found");
+                debug("Import file '{$import->url->value}' not found");
                 $str = substr_replace($str, '', $match_start, $match_len);
                 continue;
             }
@@ -134,12 +134,11 @@ class Importer
         if ($input->path && $options->cache) {
 
             $process->cacheData[$process->output->filename] = array(
-                'imports'   => $filenames,
+                'imports' => $filenames,
                 'datem_sum' => array_sum($mtimes) + $input->mtime,
-                'options'   => $options->get(),
+                'options' => $options->get(),
             );
 
-            // Save config changes.
             $process->io('saveCacheData');
         }
 
@@ -149,7 +148,7 @@ class Importer
     static protected function rewriteImportedUrls($import)
     {
         $link = Util::getLinkBetweenPaths(
-            CssCrush::$process->input->dir, dirname($import->path));
+            Crush::$process->input->dir, dirname($import->path));
 
         if (empty($link)) {
 
@@ -161,7 +160,7 @@ class Importer
 
         foreach ($matches[0] as $token) {
 
-            $url = CssCrush::$process->tokens->get($token);
+            $url = Crush::$process->tokens->get($token);
 
             if ($url->isRelative) {
                 // Prepend the relative url prefix.
@@ -173,7 +172,7 @@ class Importer
     static protected function prepareForStream(&$str)
     {
         $regex = Regex::$patt;
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $tokens = $process->tokens;
 
         // Convert all end-of-lines to unix style.
@@ -215,7 +214,7 @@ class Importer
     {
         // Catch obvious typing errors.
         $errors = false;
-        $current_file = 'file://' . end(CssCrush::$process->sources);
+        $current_file = 'file://' . end(Crush::$process->sources);
         $balanced_parens = substr_count($str, "(") === substr_count($str, ")");
         $balanced_curlies = substr_count($str, "{") === substr_count($str, "}");
 
@@ -261,13 +260,11 @@ class Importer
 
         if (! $balanced_curlies) {
             $errors = true;
-            CssCrush::$config->logger->warning(
-                '[[CssCrush]] - ' . $validate_pairings($str, '{}') ?: "Unbalanced '{' in $current_file.");
+            warning('[[CssCrush]] - ' . $validate_pairings($str, '{}') ?: "Unbalanced '{' in $current_file.");
         }
         if (! $balanced_parens) {
             $errors = true;
-            CssCrush::$config->logger->warning(
-                '[[CssCrush]] - ' . $validate_pairings($str, '()') ?: "Unbalanced '(' in $current_file.");
+            warning('[[CssCrush]] - ' . $validate_pairings($str, '()') ?: "Unbalanced '(' in $current_file.");
         }
 
         return $errors ? false : true;
@@ -275,7 +272,7 @@ class Importer
 
     static protected function addMarkers(&$str)
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $current_file_index = count($process->sources) -1;
 
         $count = preg_match_all(Regex::$patt->ruleFirstPass, $str, $matches, PREG_OFFSET_CAPTURE);
@@ -310,7 +307,7 @@ class Importer
         $callback = function ($m) {
 
             $full_match = $m[0];
-            $process = CssCrush::$process;
+            $process = Crush::$process;
 
             if (strpos($full_match, '/*') === 0) {
 

@@ -2,23 +2,16 @@
 /**
  * Expanded easing keywords for transitions
  *
- * Ported from rework by @tjholowaychuk.
- * For easing demos see http://easings.net
- *
- * @before
- *     transition: .2s ease-in-quad
- *
- * @after
- *    transition: .2s cubic-bezier(.550,.085,.680,.530)
+ * @see docs/plugins/ease.md
  */
 namespace CssCrush;
 
 Plugin::register('ease', array(
     'enable' => function () {
-        Hook::add('rule_prealias', 'CssCrush\ease');
+        Crush::$process->hooks->add('rule_prealias', 'CssCrush\ease');
     },
     'disable' => function () {
-        Hook::remove('rule_prealias', 'CssCrush\ease');
+        Crush::$process->hooks->remove('rule_prealias', 'CssCrush\ease');
     },
 ));
 
@@ -60,21 +53,18 @@ function ease(Rule $rule) {
         );
 
         foreach ($easings as $property => $value) {
-            $patt = Regex::make('~{{LB}}' . $property . '{{RB}}~i');
+            $patt = Regex::make("~{{ LB }}$property{{ RB }}~i");
             $find[] = $patt;
             $replace[] = $value;
         }
     }
 
-    if (! array_intersect_key($rule->canonicalProperties, $easing_properties)) {
+    if (! array_intersect_key($rule->declarations->canonicalProperties, $easing_properties)) {
         return;
     }
 
-    foreach ($rule as $declaration) {
-        if (
-            ! $declaration->skip &&
-            isset($easing_properties[$declaration->canonicalProperty])
-        ) {
+    foreach ($rule->declarations->filter(array('skip' => false)) as $declaration) {
+        if (isset($easing_properties[$declaration->canonicalProperty])) {
             $declaration->value = preg_replace($find, $replace, $declaration->value);
         }
     }

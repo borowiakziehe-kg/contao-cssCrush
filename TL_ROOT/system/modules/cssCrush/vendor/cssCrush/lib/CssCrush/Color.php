@@ -8,50 +8,44 @@ namespace CssCrush;
 
 class Color
 {
-    // Cached color keyword tables.
-    public static $keywords;
-    public static $minifyableKeywords;
+    protected static $keywords, $minifyableKeywords;
 
-    public static function &loadKeywords ()
+    public static function getKeywords()
     {
         if (! isset(self::$keywords)) {
-
-            $table = array();
-            $path = CssCrush::$dir . '/misc/color-keywords.ini';
-            if ($keywords = parse_ini_file($path)) {
-                foreach ($keywords as $word => $rgb) {
-                    $rgb = array_map('intval', explode(',', $rgb));
-                    self::$keywords[ $word ] = $rgb;
+            if ($keywords = Util::loadIni('misc/color-keywords.ini')) {
+                foreach ($keywords as $keyword => $rgb) {
+                    self::$keywords[$keyword] = array_map('floatval', explode(',', $rgb)) + array(0,0,0,1);
                 }
             }
         }
 
-        return self::$keywords;
+        return isset(Crush::$process->colorKeywords) ? Crush::$process->colorKeywords : self::$keywords;
     }
 
-    public static function &loadMinifyableKeywords ()
+    public static function getMinifyableKeywords()
     {
         if (! isset(self::$minifyableKeywords)) {
 
             // If color name is longer than 4 and less than 8 test to see if its hex
             // representation could be shortened.
             $table = array();
-            $keywords =& Color::loadKeywords();
+            $keywords = self::getKeywords();
 
-            foreach ($keywords as $name => &$rgb) {
+            foreach ($keywords as $name => $rgba) {
                 $name_len = strlen($name);
                 if ($name_len < 5) {
                     continue;
                 }
 
-                $hex = self::rgbToHex($rgb);
+                $hex = self::rgbToHex($rgba);
 
                 if ($name_len > 7) {
-                    self::$minifyableKeywords[ $name ] = $hex;
+                    self::$minifyableKeywords[$name] = $hex;
                 }
                 else {
                     if (preg_match(Regex::$patt->cruftyHex, $hex)) {
-                        self::$minifyableKeywords[ $name ] = $hex;
+                        self::$minifyableKeywords[$name] = $hex;
                     }
                 }
             }
@@ -100,11 +94,8 @@ class Color
                 break;
 
             case 'keyword':
-                $keywords =& self::loadKeywords();
+                $keywords = self::getKeywords();
                 $rgba = $keywords[$color];
-
-                // Manually add the alpha component.
-                $rgba[] = 1;
                 break;
         }
 
@@ -118,8 +109,8 @@ class Color
             $color_patt = Regex::make('~^(
                 \#(?={{hex}}{3}) |
                 \#(?={{hex}}{6}) |
-                rgba?(?=[?(]) |
-                hsla?(?=[?(])
+                rgba?(?=\() |
+                hsla?(?=\()
             )~ixS');
         }
 
@@ -147,8 +138,7 @@ class Color
 
         // Secondly try to match a color keyword.
         else {
-
-            $keywords =& self::loadKeywords();
+            $keywords = self::getKeywords();
             if (isset($keywords[$str])) {
                 $color_test['type'] = 'keyword';
             }
@@ -178,8 +168,8 @@ class Color
         $b /= 255;
         $max = max($r, $g, $b);
         $min = min($r, $g, $b);
-        $h;
-        $s;
+        $h = 0;
+        $s = 0;
         $l = ($max + $min) / 2;
 
         if ($max == $min) {
@@ -222,9 +212,9 @@ class Color
         }
 
         list($h, $s, $l, $a) = $hsla;
-        $r;
-        $g;
-        $b;
+        $r = 0;
+        $g = 0;
+        $b = 0;
         if ($s == 0) {
             $r = $g = $b = $l;
         }

@@ -4,33 +4,34 @@
   * High level API.
   *
   */
-use CssCrush\CssCrush;
+use CssCrush\Crush;
+class_alias('CssCrush\Crush', 'CssCrush\CssCrush');
 
-function csscrush_file($file, $options = null) {
-    return CssCrush::file($file, $options);
+function csscrush_file($file, $options = array()) {
+    return Crush::file($file, $options);
 }
 
-function csscrush_tag($file, $options = null, $attributes = array()) {
-    return CssCrush::tag($file, $options, $attributes);
+function csscrush_tag($file, $options = array(), $attributes = array()) {
+    return Crush::tag($file, $options, $attributes);
 }
 
-function csscrush_inline($file, $options = null, $attributes = array()) {
-    return CssCrush::inline($file, $options, $attributes);
+function csscrush_inline($file, $options = array(), $attributes = array()) {
+    return Crush::inline($file, $options, $attributes);
 }
 
-function csscrush_string($string, $options = null) {
-    return CssCrush::string($string, $options);
+function csscrush_string($string, $options = array()) {
+    return Crush::string($string, $options);
 }
 
 function csscrush_stat() {
-    return CssCrush::stat();
+    return Crush::stat();
 }
 
 function csscrush_version($use_git = false) {
     if ($use_git && $version = \CssCrush\Version::gitDescribe()) {
         return $version;
     }
-    return CssCrush::$config->version;
+    return Crush::$config->version;
 }
 
 /**
@@ -43,11 +44,10 @@ function csscrush_set($object_name, $modifier) {
 
     if (in_array($object_name, array('options', 'config'))) {
 
-        $pointer = $object_name === 'options' ?
-            CssCrush::$config->options : CssCrush::$config;
+        $pointer = $object_name === 'options' ? Crush::$config->options : Crush::$config;
 
         if (is_callable($modifier)) {
-            call_user_func($modifier, $pointer);
+            $modifier($pointer);
         }
         elseif (is_array($modifier)) {
             foreach ($modifier as $key => $value) {
@@ -67,8 +67,7 @@ function csscrush_get($object_name, $property = null) {
 
     if (in_array($object_name, array('options', 'config'))) {
 
-        $pointer = $object_name === 'options' ?
-            CssCrush::$config->options : CssCrush::$config;
+        $pointer = $object_name === 'options' ? Crush::$config->options : Crush::$config;
 
         if (! isset($property)) {
 

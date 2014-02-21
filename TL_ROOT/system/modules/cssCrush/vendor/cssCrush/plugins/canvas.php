@@ -2,50 +2,7 @@
 /**
  * Bitmap image generator
  *
- * Requires the GD image library bundled with PHP.
- *
- * @example
- *
- *     // Red semi-transparent square.
- *     @canvas foo {
- *         width: 50;
- *         height: 50;
- *         fill: rgba(255, 0, 0, .5);
- *     }
- *
- *     body {
- *         background: canvas(foo);
- *     }
- *
- * @example
- *
- *     // White to transparent east facing gradient with 10px margin and
- *     // background fill.
- *     @canvas foo {
- *         width: arg(0, 150);
- *         height: 150;
- *         fill: canvas-linear-gradient(to right, white, rgba(255,255,255,0));
- *         background-fill: powderblue;
- *         margin: 10;
- *     }
- *
- *     // Rectangle 300x150.
- *     body {
- *         background: red canvas(foo, 300) no-repeat;
- *     }
- *     // Default dimensions 150x150 as data URI.
- *     .bar {
- *         background: canvas-data(foo) repeat-x;
- *     }
- *
- * @example
- *
- *     // Google logo resized to 400px width and given a sepia effect.
- *     @canvas foo {
- *         src: url("https://www.google.co.uk/images/srpr/logo4w.png");
- *         width: 400;
- *         canvas-filter: greyscale() colorize(45, 45, 0);
- *     }
+ * @see docs/plugins/canvas.md
  */
 namespace CssCrush;
 
@@ -53,12 +10,12 @@ use stdClass;
 
 Plugin::register('canvas', array(
     'enable' => function () {
-        Hook::add('capture_phase2', 'CssCrush\canvas_capture');
+        Crush::$process->hooks->add('capture_phase2', 'CssCrush\canvas_capture');
         Functions::register('canvas', 'CssCrush\canvas_generator');
         Functions::register('canvas-data', 'CssCrush\canvas_generator');
     },
     'disable' => function () {
-        Hook::remove('capture_phase2', 'CssCrush\canvas_capture');
+        Crush::$process->hooks->remove('capture_phase2', 'CssCrush\canvas_capture');
         Functions::deRegister('canvas');
         Functions::deRegister('canvas-data');
     },
@@ -67,14 +24,13 @@ Plugin::register('canvas', array(
 
 function canvas_capture($process) {
 
-    // Extract definitions.
     $process->stream->pregReplaceCallback(
         Regex::make('~@canvas \s+ (?<name>{{ident}}) \s* {{block}}~ixS'),
         function ($m) {
             $name = strtolower($m['name']);
             $block = $m['block_content'];
             if (! empty($block)) {
-                CssCrush::$process->misc->canvas_defs[$name] = new Template($block);
+                Crush::$process->misc->canvas_defs[$name] = new Template($block);
             }
             return '';
         });
@@ -82,8 +38,8 @@ function canvas_capture($process) {
 
 function canvas_generator($input, $context) {
 
-    $process = CssCrush::$process;
-    $logger = CssCrush::$config->logger;
+    $process = Crush::$process;
+    $logger = Crush::$config->logger;
 
     // Check GD requirements are met.
     static $requirements;
@@ -117,11 +73,12 @@ function canvas_generator($input, $context) {
     // Apply args to template.
     $block = $canvas_defs[$name]->apply($args);
 
-    // Parse the block into a keyed array.
-    $raw = array_change_key_case(Rule::parseBlock($block, array(
+    $raw = DeclarationList::parse($block, array(
         'keyed' => true,
+        'lowercase_keys' => true,
         'flatten' => true,
-    )));
+        'apply_hooks' => true,
+    ));
 
     // Create canvas object.
     $canvas = new Canvas();
@@ -145,7 +102,7 @@ function canvas_generator($input, $context) {
 
     // Apply functions.
     canvas_apply_css_funcs($canvas);
-    // $logger->debug($canvas);
+    // debug($canvas);
 
     // Create fingerprint for this canvas based on canvas object.
     $fingerprint = substr(md5(serialize($canvas)), 0, 7);
@@ -228,7 +185,7 @@ function canvas_generator($input, $context) {
         }
     }
     else {
-        // $logger->debug('file cached');
+        // debug('file cached');
     }
 
 
@@ -256,10 +213,12 @@ function canvas_generator($input, $context) {
         $url = new Url('data:image/png;base64,' . base64_encode($data));
     }
 
-    // Cache the output URL.
-    $process->misc->canvas_cache[$cache_key] = $url->label;
+    $label = $process->tokens->add($url);
 
-    return $url->label;
+    // Cache the output URL.
+    $process->misc->canvas_cache[$cache_key] = $label;
+
+    return $label;
 }
 
 
@@ -487,7 +446,7 @@ function canvas_preprocess($canvas) {
 
 function canvas_fetch_src($url_token) {
 
-    if ($url_token && $url = CssCrush::$process->tokens->get($url_token)) {
+    if ($url_token && $url = Crush::$process->tokens->get($url_token)) {
 
         $file = $url->getAbsolutePath();
 
@@ -685,14 +644,15 @@ function canvas_requirements() {
 
     if (! extension_loaded('gd')) {
         $requirements_met = false;
-        CssCrush::$config->logger->warning('[[CssCrush]] - GD extension not available.');
+        warning('[[CssCrush]] - GD extension not available.');
     }
     else {
-        $info = array_change_key_case(gd_info());
-        foreach (array('png', 'jpeg') as $key) {
-            if (empty($info["$key support"])) {
+        $gd_info = implode('|', array_keys(array_filter(gd_info())));
+
+        foreach (array('jpe?g' => 'JPG', 'png' => 'PNG') as $file_ext_patt => $file_ext) {
+            if (! preg_match("~\b(?<ext>$file_ext_patt) support\b~i", $gd_info)) {
                 $requirements_met = false;
-                CssCrush::$config->logger->warning("[[CssCrush]] - GD extension has no $key support.");
+                warning("[[CssCrush]] - GD extension has no $file_ext support.");
             }
         }
     }

@@ -2,45 +2,16 @@
 /**
  * Polyfill for the rem (root em) length unit
  *
- * No version of IE to date (IE <= 10) resizes text set with pixels.
- * IE > 8 supports rem units which will resize. See http://caniuse.com/#feat=rem
- *
- * Three conversion modes:
- *
- *     rem-fallback (rem to px, with converted value as fallback)
- *     ============
- *     font-size: 1rem;
- *
- *     font-size: 16px;
- *     font-size: 1rem;
- *
- *     px-fallback (px to rem, with original pixel value as fallback)
- *     ===========
- *     font-size: 16px;
- *
- *     font-size: 16px;
- *     font-size: 1rem;
- *
- *     convert (in-place px to rem conversion)
- *     =======
- *     font-size: 16px;
- *
- *     font-size: 1rem;
- *
- * `rem-fallback` is the default mode. To change the conversion mode set a
- * variable named `rem__mode` with the mode name you want as its value.
- * 
- * To convert all values, not just values of the font related properties,
- * set a variable named `rem__all` with a value of `yes`.
+ * @see docs/plugins/rem.md
  */
 namespace CssCrush;
 
 Plugin::register('rem', array(
     'enable' => function () {
-        Hook::add('rule_prealias', 'CssCrush\rem');
+        Crush::$process->hooks->add('rule_prealias', 'CssCrush\rem');
     },
     'disable' => function () {
-        Hook::remove('rule_prealias', 'CssCrush\rem');
+        Crush::$process->hooks->remove('rule_prealias', 'CssCrush\rem');
     },
 ));
 
@@ -59,26 +30,18 @@ function rem(Rule $rule) {
         $modes = array('rem-fallback', 'px-fallback', 'convert');
     }
 
-    $vars =& CssCrush::$process->vars;
-
     // Determine which properties are touched; all, or just font related.
-    $just_font_props = ! isset($vars['rem__all']);
+    $just_font_props = ! Crush::$process->settings->get('rem-all', false);
 
-    if ($just_font_props && ! array_intersect_key($rule->canonicalProperties, $font_props)) {
+    if ($just_font_props && ! array_intersect_key($rule->declarations->canonicalProperties, $font_props)) {
         return;
     }
 
     // Determine what conversion mode we're using.
-    $mode = $modes[0];
-    if (isset($vars['rem__mode'])) {
-        $_mode = $vars['rem__mode'];
-        if (in_array($_mode, $modes)) {
-            $mode = $_mode;
-        }
-    }
+    $mode = Crush::$process->settings->get('rem-mode', $modes[0]);
 
     // Determine the default base em-size, to my knowledge always 16px.
-    $base = isset($vars['rem__base']) ? $vars['rem__base'] : 16;
+    $base = Crush::$process->settings->get('rem-base', 16);
 
     // Select the length match pattern depending on mode.
     $length_patt = $mode === 'rem-fallback' ? $rem_patt : $px_patt;
@@ -140,6 +103,6 @@ function rem(Rule $rule) {
     }
 
     if ($rule_updated) {
-        $rule->setDeclarations($new_set);
+        $rule->declarations->reset($new_set);
     }
 }

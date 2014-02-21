@@ -2,55 +2,16 @@
 /**
  * Polyfill to auto-generate legacy flexbox syntaxes
  *
- * Works in conjunction with aliases to support legacy
- * flexbox (flexbox 2009) syntax with CR flexbox.
- *
- * @before
- *     display: flex;
- *     flex-flow: row-reverse wrap;
- *     justify-content: space-between;
- *
- * @after
- *     display: -webkit-box;
- *     display: -moz-box;
- *     display: -webkit-flex;
- *     display: -ms-flexbox;
- *     display: flex;
- *     -webkit-box-direction: reverse;
- *     -moz-box-direction: reverse;
- *     -webkit-box-orient: horizontal;
- *     -moz-box-orient: horizontal;
- *     -webkit-box-lines: wrap;
- *     -moz-box-lines: wrap;
- *     -webkit-flex-flow: row-reverse wrap;
- *     -ms-flex-flow: row-reverse wrap;
- *     flex-flow: row-reverse wrap;
- *     -webkit-box-pack: justify;
- *     -moz-box-pack: justify;
- *     -webkit-justify-content: space-between;
- *     -ms-flex-pack: justify;
- *     justify-content: space-between;
- *
- * @caveats
- *     Firefox's early flexbox implementation has several non-trivial issues:
- *     - With flex containers "display: -moz-box" generates an inline-block element,
- *       not a block level element as in other implementations.
- *       Suggested workaround is to set "width: 100%", in conjunction
- *       with "-moz-box-sizing: border-box" if padding is required.
- *     - The width of flex items can only be set in pixels.
- *     - Flex items cannot be justified. I.e. "-moz-box-pack: justify" does not work.
- *
- *     Firefox 20 will ship in April 2013 with an updated (and unprefixed) implementation
- *     of flexbox: https://developer.mozilla.org/en-US/docs/Firefox_20_for_developers
+ * @see docs/plugins/legacy-flexbox.md
  */
 namespace CssCrush;
- 
+
 Plugin::register('legacy-flexbox', array(
     'enable' => function () {
-        Hook::add('rule_prealias', 'CssCrush\legacy_flexbox');
+        Crush::$process->hooks->add('rule_prealias', 'CssCrush\legacy_flexbox');
     },
     'disable' => function () {
-        Hook::remove('rule_prealias', 'CssCrush\legacy_flexbox');
+        Crush::$process->hooks->remove('rule_prealias', 'CssCrush\legacy_flexbox');
     },
 ));
 
@@ -74,7 +35,7 @@ function legacy_flexbox(Rule $rule) {
         //  - flex-basis
     );
 
-    $properties =& $rule->properties;
+    $properties =& $rule->declarations->properties;
     $intersect_props = array_intersect_key($properties, $flex_related_props);
 
     // Checking for flex related properties or 'display:flex'.
@@ -95,12 +56,12 @@ function legacy_flexbox(Rule $rule) {
         return;
     }
 
-    $declaration_aliases =& CssCrush::$process->aliases['declarations'];
+    $declaration_aliases =& Crush::$process->aliases['declarations'];
 
     $stack = array();
     $rule_updated = false;
 
-    foreach ($rule as $declaration) {
+    foreach ($rule->declarations as $declaration) {
 
         $prop = $declaration->property;
         $value = $declaration->value;
@@ -179,7 +140,7 @@ function legacy_flexbox(Rule $rule) {
 
     // Re-assign if any updates have been made.
     if ($rule_updated) {
-        $rule->setDeclarations($stack);
+        $rule->declarations->reset($stack);
     }
 }
 
@@ -190,7 +151,7 @@ function flex_direction($value, &$stack) {
     // box-orient:     horizontal | vertical | inline-axis | block-axis | inherit
     // box-direction:  normal | reverse | inherit
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     static $directions = array(
         'row'            => 'normal',
@@ -230,7 +191,7 @@ function flex_justify_content($value, &$stack) {
     // justify-content: flex-start | flex-end | center | space-between | space-around
     // box-pack:        start | end | center | justify
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     static $positions = array(
         'flex-start'    => 'start',
@@ -256,7 +217,7 @@ function flex_align_items($value, &$stack) {
     // align-items: flex-start | flex-end | center | baseline | stretch
     // box-align:   start | end | center | baseline | stretch
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     static $positions = array(
         'flex-start'    => 'start',
@@ -282,7 +243,7 @@ function flex_order($value, &$stack) {
     // order:             <integer>
     // box-ordinal-group: <integer>
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     // Bump value as box-ordinal-group requires a positive integer:
     // http://www.w3.org/TR/2009/WD-css3-flexbox-20090723/#displayorder
@@ -308,7 +269,7 @@ function flex_wrap($value, &$stack) {
     // flex-wrap: nowrap | wrap | wrap-reverse
     // box-lines: single | multiple
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     static $wrap_behaviours = array(
         'nowrap'       => 'single',
@@ -333,7 +294,7 @@ function flex($value, &$stack) {
     // flex:     none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]
     // box-flex: <number>
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     // Normalize keyword arguments.
     static $keywords = array(
@@ -368,7 +329,7 @@ function flex_grow($value, &$stack) {
     // flex-grow: <number>
     // box-flex:  <number>
 
-    $prop_aliases =& CssCrush::$process->aliases['properties'];
+    $prop_aliases =& Crush::$process->aliases['properties'];
 
     $rule_updated = false;
     if (isset($prop_aliases['box-flex'])) {

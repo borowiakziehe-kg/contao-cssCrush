@@ -18,7 +18,7 @@ class CssCrushLoader extends \Frontend
      * Hook into generatePage and add csscrush to the output head
      * @param $objPage
      * @param $objLayout
-     * @param PageRegular $objPageRegular
+     * @param \PageRegular $objPageRegular
      * @return string
      */
     public function loadCSSCrush($objPage, $objLayout, \PageRegular $objPageRegular)
@@ -39,7 +39,7 @@ class CssCrushLoader extends \Frontend
             // Buffer the plugins
             $plugins = self::generatePluginArrays($objLayout);
 
-            //generate options array. Look at for all posible csscrush options: https://github.com/peteboere/css-crush/wiki/PHP-API
+            //generate options array. Look at for all possible csscrush options: https://github.com/peteboere/css-crush/wiki/PHP-API
             $options = array(
                 'minify' => ($objLayout->cssCrushMinify) ?  true :  false,
                 'cache' => ($objLayout->cssCrushCache) ?  true :  false,
@@ -68,6 +68,7 @@ class CssCrushLoader extends \Frontend
         }
     }
 
+
     /**
      * Get all ccscrush plugins from plugins folder (vendor/cssCrush/plugins) and return them as aray
      * @return array
@@ -88,6 +89,7 @@ class CssCrushLoader extends \Frontend
         }
         return $data;
     }
+
 
     /**
      * Generate the enable disable plugins and return them as array

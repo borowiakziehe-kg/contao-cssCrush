@@ -6,7 +6,7 @@
   */
 namespace CssCrush;
 
-CssCrush::$config->formatters = array(
+Crush::$config->formatters = array(
     'single-line' => 'CssCrush\fmtr_single',
     'padded' => 'CssCrush\fmtr_padded',
     'block' => 'CssCrush\fmtr_block',
@@ -14,19 +14,19 @@ CssCrush::$config->formatters = array(
 
 function fmtr_single($rule) {
 
-    $EOL = CssCrush::$process->newline;
+    $EOL = Crush::$process->newline;
 
-    $selectors = implode(", ", $rule->selectors);
-    $block = implode("; ", $rule->declarations);
+    $selectors = $rule->selectors->join(', ');
+    $block = $rule->declarations->join('; ');
     return "$selectors { $block; }$EOL";
 }
 
 function fmtr_padded($rule, $padding = 40) {
 
-    $EOL = CssCrush::$process->newline;
+    $EOL = Crush::$process->newline;
 
-    $selectors = implode(", ", $rule->selectors);
-    $block = implode("; ", $rule->declarations);
+    $selectors = $rule->selectors->join(', ');
+    $block = $rule->declarations->join('; ');
 
     if (strlen($selectors) > $padding) {
         $padding = str_repeat(' ', $padding);
@@ -40,9 +40,9 @@ function fmtr_padded($rule, $padding = 40) {
 
 function fmtr_block($rule, $indent = '    ') {
 
-    $EOL = CssCrush::$process->newline;
+    $EOL = Crush::$process->newline;
 
-    $selectors = implode(",$EOL", $rule->selectors);
-    $block = implode(";$EOL$indent", $rule->declarations);
+    $selectors = $rule->selectors->join(",$EOL");
+    $block = $rule->declarations->join(";$EOL$indent");
     return "$selectors {{$EOL}$indent$block;$EOL$indent}$EOL";
 }

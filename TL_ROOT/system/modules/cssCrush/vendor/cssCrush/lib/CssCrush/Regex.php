@@ -14,8 +14,6 @@ class Regex
     // Character classes.
     public static $classes;
 
-    public static $swaps = array();
-
     public static function init()
     {
         self::$patt = $patt = new \stdClass();
@@ -34,7 +32,6 @@ class Regex
         $classes->c_token = '\?c' . $classes->token_id . '\?'; // Comments.
         $classes->s_token = '\?s' . $classes->token_id . '\?'; // Strings.
         $classes->r_token = '\?r' . $classes->token_id . '\?'; // Rules.
-        $classes->p_token = '\?p' . $classes->token_id . '\?'; // Parens.
         $classes->u_token = '\?u' . $classes->token_id . '\?'; // URLs.
         $classes->t_token = '\?t' . $classes->token_id . '\?'; // Traces.
         $classes->a_token = '\?a(' . $classes->token_id . ')\?'; // Args.
@@ -42,7 +39,6 @@ class Regex
         // Boundries.
         $classes->LB = '(?<![\w-])'; // Left ident boundry.
         $classes->RB = '(?![\w-])'; // Right ident boundry.
-        $classes->RTB = '(?=\?[a-z])'; // Right token boundry.
 
         // Recursive block matching.
         $classes->block = '(?<block>\{\s*(?<block_content>(?:(?>[^{}]+)|(?&block))*)\})';
@@ -55,7 +51,6 @@ class Regex
 
         // Create standalone class patterns, add classes as class swaps.
         foreach ($classes as $name => $class) {
-            self::$swaps['{{' . str_replace('_', '-', $name) . '}}'] = $class;
             $patt->{$name} = '~' . $class . '~S';
         }
 
@@ -67,14 +62,13 @@ class Regex
         $patt->import = Regex::make('~@import \s+ ({{u-token}}) \s? ([^;]*);~ixS');
         $patt->charset = Regex::make('~@charset \s+ ({{s-token}}) \s*;~ixS');
         $patt->mixin = Regex::make('~@mixin \s+ (?<name>{{ident}}) \s* {{block}}~ixS');
-        $patt->ifDefine = Regex::make('~@ifdefine \s+ (not \s+)? ({{ident}}) \s* \{~ixS');
         $patt->fragmentCapture = Regex::make('~@fragment \s+ (?<name>{{ident}}) \s* {{block}}~ixS');
         $patt->fragmentInvoke = Regex::make('~@fragment \s+ (?<name>{{ident}}) {{parens}}? \s* ;~ixS');
         $patt->abstract = Regex::make('~^@abstract \s+ (?<name>{{ident}})~ixS');
 
         // Functions.
-        $patt->function = Regex::make('~{{LB}} ({{ident}}) ({{p-token}})~xS');
-        $patt->varFunction = Regex::make('~\$\( \s* ({{ident}}) \s* \)~xS');
+        $patt->functionTest = Regex::make('~{{ LB }} (?<func_name>{{ ident }}) \(~xS');
+        $patt->varFunction = Regex::make('~\$\( \s* ({{ ident }}) \s* \)~xS');
         $patt->thisFunction = Regex::makeFunctionPatt(array('this'));
 
         // Strings and comments.
@@ -122,17 +116,23 @@ class Regex
 
     public static function make($pattern)
     {
-        static $cache = array(), $find, $replace;
-        if (isset($cache[$pattern])) {
+        static $cache = array(), $pattern_map;
 
+        if (isset($cache[$pattern])) {
             return $cache[$pattern];
         }
-        elseif (! $find) {
-            $find = array_keys(self::$swaps);
-            $replace = array_values(self::$swaps);
+
+        if (! $pattern_map) {
+            $pattern_map = array();
+            foreach (self::$classes as $name => $regex_class) {
+                $pattern_map[str_replace('_', '-', $name)] = $regex_class;
+            }
         }
 
-        return $cache[$pattern] = str_replace($find, $replace, $pattern);
+        return $cache[$pattern] = preg_replace_callback(
+            '~\{\{ *(?<name>[\w-]+) *\}\}~S', function ($m) use ($pattern_map) {
+                return $pattern_map[$m['name']];
+            }, $pattern);
     }
 
     public static function matchAll($patt, $subject, $offset = 0)
@@ -160,7 +160,7 @@ class Regex
 
         $flat_list = implode('|', array_map('preg_quote', $list));
 
-        return Regex::make("~($template{{LB}}(?:$flat_list)$question)\(~iS");
+        return Regex::make("~($template{{ LB }}(?:$flat_list)$question)\(~iS");
     }
 }
 

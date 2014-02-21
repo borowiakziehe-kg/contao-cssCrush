@@ -31,7 +31,8 @@ class Template
 
         // Parse all arg function calls in the passed string,
         // callback creates default values.
-        $capture_callback = function ($str)
+        $self = $this;
+        $capture_callback = function ($str) use (&$self)
         {
             $args = Functions::parseArgsSimple($str);
 
@@ -48,12 +49,12 @@ class Template
             $default_value = isset($args[0]) ? $args[0] : null;
 
             if (isset($default_value)) {
-                $this->defaults[$position] = $default_value;
+                $self->defaults[$position] = $default_value;
             }
 
             // Update the argument count.
             $argNumber = ((int) $position) + 1;
-            $this->argCount = max($this->argCount, $argNumber);
+            $self->argCount = max($self->argCount, $argNumber);
 
             return "?a$position?";
         };
@@ -137,16 +138,15 @@ class Template
 
     public static function tokenize($str)
     {
-        $str = CssCrush::$process->tokens->capture($str, 's');
-        $str = CssCrush::$process->tokens->capture($str, 'u');
+        $str = Crush::$process->tokens->capture($str, 's');
+        $str = Crush::$process->tokens->capture($str, 'u');
 
         return $str;
     }
 
     public static function unTokenize($str)
     {
-        $str = CssCrush::$process->tokens->restore($str, 'u', true);
-        $str = CssCrush::$process->tokens->restore($str, 's', true);
+        $str = Crush::$process->tokens->restore($str, array('u', 's'), true);
 
         return $str;
     }

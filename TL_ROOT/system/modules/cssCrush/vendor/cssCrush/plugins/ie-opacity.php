@@ -2,34 +2,28 @@
 /**
  * Polyfill for opacity in IE < 9
  *
- * @before
- *     opacity: 0.45;
- *
- * @after
- *     opacity: 0.45;
- *     -ms-filter: "alpha(opacity=45)";
- *     *filter: alpha(opacity=45);
- *     zoom: 1;
+ * @see docs/plugins/ie-opacity.md
  */
 namespace CssCrush;
 
 Plugin::register('ie-opacity', array(
     'enable' => function () {
-        Hook::add('rule_postalias', 'CssCrush\ie_opacity');
+        Crush::$process->hooks->add('rule_postalias', 'CssCrush\ie_opacity');
     },
     'disable' => function () {
-        Hook::remove('rule_postalias', 'CssCrush\ie_opacity');
+        Crush::$process->hooks->remove('rule_postalias', 'CssCrush\ie_opacity');
     },
 ));
 
 
 function ie_opacity(Rule $rule) {
 
-    if ($rule->propertyCount('opacity') < 1) {
+    if ($rule->declarations->propertyCount('opacity') < 1) {
         return;
     }
+
     $new_set = array();
-    foreach ($rule as $declaration) {
+    foreach ($rule->declarations as $declaration) {
         $new_set[] = $declaration;
         if (
             $declaration->skip ||
@@ -41,7 +35,7 @@ function ie_opacity(Rule $rule) {
         $opacity = (float) $declaration->value;
         $opacity = round($opacity * 100);
 
-        if (! $rule->propertyCount('zoom')) {
+        if (! $rule->declarations->propertyCount('zoom')) {
             // Filters need hasLayout
             $new_set[] = new Declaration('zoom', 1);
         }
@@ -49,5 +43,5 @@ function ie_opacity(Rule $rule) {
         $new_set[] = new Declaration('-ms-filter', "\"$value\"");
         $new_set[] = new Declaration('*filter', $value);
     }
-    $rule->setDeclarations($new_set);
+    $rule->declarations->reset($new_set);
 }

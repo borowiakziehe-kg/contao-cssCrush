@@ -82,7 +82,7 @@ class Util
             $path = $realpath;
         }
         else {
-            $doc_root = isset(CssCrush::$process) ? CssCrush::$process->docRoot : CssCrush::$config->docRoot;
+            $doc_root = isset(Crush::$process) ? Crush::$process->docRoot : Crush::$config->docRoot;
 
             // Absolute path.
             if (strpos($path, '/') === 0) {
@@ -93,11 +93,11 @@ class Util
             }
             // Relative path. Try resolving based on the directory of the executing script.
             else {
-                $path = CssCrush::$config->scriptDir . '/' . $path;
+                $path = Crush::$config->scriptDir . '/' . $path;
             }
 
             if (! file_exists($path) && is_callable($recovery)) {
-                $path = call_user_func($recovery, $path);
+                $path = $recovery($path);
             }
             $path = realpath($path);
         }
@@ -196,9 +196,19 @@ class Util
 
             return true;
         }
-        CssCrush::$config->logger->warning("[[CssCrush]] - Could not write file '$file'.");
+        warning("[[CssCrush]] - Could not write file '$file'.");
 
         return false;
+    }
+
+    public static function loadIni($library_relative_path, $sections = false)
+    {
+        if (! ($ini_array = @parse_ini_file(Crush::$dir . '/' . $library_relative_path, $sections))) {
+            notice("[[CssCrush]] - Ini file '$library_relative_path' could not be parsed.");
+
+            return false;
+        }
+        return $ini_array;
     }
 
     /*

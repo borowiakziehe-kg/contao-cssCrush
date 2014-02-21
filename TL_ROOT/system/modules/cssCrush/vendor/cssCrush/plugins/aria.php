@@ -2,34 +2,19 @@
 /**
  * Pseudo classes for working with ARIA roles, states and properties.
  *
- * ARIA roles spec: http://www.w3.org/TR/wai-aria/roles
- * ARIA states and properties spec: http://www.w3.org/TR/wai-aria/states_and_properties
- *
- * @before
- *      :role(tablist) {...}
- *      :aria-expanded {...}
- *      :aria-expanded(false) {...}
- *      :aria-label {...}
- *      :aria-label(foobarbaz) {...}
- *
- * @after
- *      [role="tablist"] {...}
- *      [aria-expanded="true"] {...}
- *      [aria-expanded="false"] {...}
- *      [aria-label] {...}
- *      [aria-label="foobarbaz"] {...}
+ * @see docs/plugins/aria.md
  */
 namespace CssCrush;
 
 Plugin::register('aria', array(
     'enable' => function () {
         foreach (aria() as $name => $value) {
-            CssCrush::addSelectorAlias($name, $value);
+            Crush::addSelectorAlias($name, $value);
         }
     },
     'disable' => function () {
         foreach (aria() as $name => $value) {
-            CssCrush::removeSelectorAlias($name);
+            Crush::removeSelectorAlias($name);
         }
     },
 ));

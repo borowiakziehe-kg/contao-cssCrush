@@ -10,27 +10,12 @@ class Process
 {
     public function __construct($user_options = array(), $dev_options = array())
     {
-        $config = CssCrush::$config;
+        $config = Crush::$config;
 
-        CssCrush::loadAssets();
+        Crush::loadAssets();
 
-        $dev_options += array(
-            'io_context' => 'filter'
-        );
-
-        // Create options instance for this process.
-        $this->options = new Options($user_options);
-
-        // Populate option defaults.
-        $this->options->merge($config->options);
-
-        // Override the minify option if a formatter is specified.
-        if ($this->options->formatter) {
-            $this->options->minify = false;
-        }
-
-        // Keep track of global vars to maintain cache integrity.
-        $this->options->global_vars = $config->vars;
+        $dev_options += array('io_context' => 'filter');
+        $this->ioContext = $dev_options['io_context'];
 
         // Initialize properties.
         $this->cacheData = array();
@@ -40,10 +25,12 @@ class Process
         $this->charset = null;
         $this->sources = array();
         $this->vars = array();
+        $this->settings = array();
         $this->misc = new \stdClass();
         $this->input = new \stdClass();
         $this->output = new \stdClass();
         $this->tokens = new Tokens();
+        $this->hooks = new Hooks();
         $this->sourceMap = null;
         $this->selectorAliases = array();
         $this->selectorAliasesPatt = null;
@@ -56,32 +43,19 @@ class Process
         $this->plugins = $config->plugins;
         $this->aliases = $config->aliases;
 
+        // Options.
+        $this->options = new Options($user_options, $config->options);
+
+        // Keep track of global vars to maintain cache integrity.
+        $this->options->global_vars = $config->vars;
+
+        // Shortcut commonly used options to avoid __get() overhead.
         $this->docRoot = isset($this->options->doc_root) ? $this->options->doc_root : $config->docRoot;
-        $this->ioContext = $dev_options['io_context'];
-
-        // Shortcut commonly used options to avoid overhead with __get calls.
-        $this->minifyOutput = $this->options->minify;
-        $this->addTracingStubs = in_array('stubs', $this->options->trace);
-        $this->generateMap = $this->ioContext === 'file' && $this->options->source_map;
-        $this->ruleFormatter = $this->options->formatter;
-
-        // Shortcut the newline option and attach it to the process.
-        switch ($this->options->newlines) {
-            case 'windows':
-            case 'win':
-                $this->newline = "\r\n";
-                break;
-            case 'unix':
-                $this->newline = "\n";
-                break;
-            case 'use-platform':
-            default:
-                // Fall through and use default (platform) newline.
-                $this->newline = PHP_EOL;
-                break;
-        }
-
-        Hook::run('process_init');
+        $this->addTracingStubs = in_array('stubs', $this->options->__get('trace'));
+        $this->generateMap = $this->ioContext === 'file' && $this->options->__get('source_map');
+        $this->ruleFormatter = $this->options->__get('formatter');
+        $this->minifyOutput = $this->options->__get('minify');
+        $this->newline = $this->options->__get('newlines');
     }
 
     public function release()
@@ -98,7 +72,7 @@ class Process
         );
     }
 
-    public function resolveContext($input_dir, $input_file = null)
+    public function resolveContext($input_dir = null, $input_file = null)
     {
         if ($input_file) {
             $this->input->path = $input_file;
@@ -110,7 +84,7 @@ class Process
             $this->input->filename = null;
         }
 
-        $this->input->dir = $input_dir;
+        $this->input->dir = $input_dir ?: $this->docRoot;
         $this->input->dirUrl = substr($input_dir, strlen($this->docRoot));
 
         $this->output->dir = $this->io('getOutputDir');
@@ -133,7 +107,7 @@ class Process
         $args = func_get_args();
         array_shift($args);
 
-        return call_user_func_array(array(CssCrush::$config->io, $method), $args);
+        return call_user_func_array(array(Crush::$config->io, $method), $args);
     }
 
 
@@ -146,7 +120,7 @@ class Process
         $boilerplate_option = $this->options->boilerplate;
 
         if ($boilerplate_option === true) {
-            $file = CssCrush::$dir . '/boilerplate.txt';
+            $file = Crush::$dir . '/boilerplate.txt';
         }
         elseif (is_string($boilerplate_option)) {
             if (file_exists($boilerplate_option)) {
@@ -175,11 +149,11 @@ class Process
             $tags = array(
                 'datetime' => @date('Y-m-d H:i:s O'),
                 'year' => @date('Y'),
-                'version' => 'v' . csscrush_version(),
+                'version' => csscrush_version(),
                 'command' => $command_args,
                 'plugins' => implode(',', array_keys($this->plugins)),
                 'compile_time' => function () {
-                    $now = microtime(true) - CssCrush::$process->stat['compile_start_time'];
+                    $now = microtime(true) - Crush::$process->stat['compile_start_time'];
                     return round($now, 4) . ' seconds';
                 },
             );
@@ -214,11 +188,11 @@ class Process
             Regex::make('~@selector-alias +\:?({{ident}}) +([^;]+) *;~iS'),
             function ($m) {
                 $name = strtolower($m[1]);
-                CssCrush::$process->selectorAliases[$name] = new Template(Util::stripCommentTokens($m[2]));
+                Crush::$process->selectorAliases[$name] = new Template(Util::stripCommentTokens($m[2]));
             });
 
         // Merge with global selector aliases.
-        $this->selectorAliases += CssCrush::$config->selectorAliases;
+        $this->selectorAliases += Crush::$config->selectorAliases;
 
         // Create the selector aliases pattern and store it.
         if ($this->selectorAliases) {
@@ -228,28 +202,20 @@ class Process
         }
     }
 
-    public static function applySelectorAliases(&$str)
+    public static function applySelectorAliases($str)
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
 
-        // Early bail conditions.
         if (! $process->selectorAliases || ! preg_match($process->selectorAliasesPatt, $str)) {
-            return;
+            return $str;
         }
 
         $table =& $process->selectorAliases;
 
-        // Find all selector-alias matches.
-        $selector_alias_calls = Regex::matchAll($process->selectorAliasesPatt, $str);
+        while (preg_match_all($process->selectorAliasesPatt, $str, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
 
-        // Step through the matches from last to first.
-        while ($selector_alias_call = array_pop($selector_alias_calls)) {
-
+            $selector_alias_call = end($m);
             $selector_alias_name = strtolower($selector_alias_call[1][0]);
-
-            if (! isset($table[$selector_alias_name])) {
-                continue;
-            }
 
             $start = $selector_alias_call[0][1];
             $length = strlen($selector_alias_call[0][0]);
@@ -259,15 +225,14 @@ class Process
             if (isset($selector_alias_call[2])) {
 
                 // Parse argument list.
-                if (! preg_match(Regex::$patt->parens, $str, $parens, PREG_OFFSET_CAPTURE, $start)) {
-                    continue;
-                }
-                $args = Functions::parseArgs($parens[2][0]);
+                if (preg_match(Regex::$patt->parens, $str, $parens, PREG_OFFSET_CAPTURE, $start)) {
+                    $args = Functions::parseArgs($parens[2][0]);
 
-                // Amend offsets.
-                $paren_start = $parens[0][1];
-                $paren_len = strlen($parens[0][0]);
-                $length = ($paren_start + $paren_len) - $start;
+                    // Amend offsets.
+                    $paren_start = $parens[0][1];
+                    $paren_len = strlen($parens[0][0]);
+                    $length = ($paren_start + $paren_len) - $start;
+                }
             }
 
             // Resolve the selector alias value to a template instance if a callable is given.
@@ -276,9 +241,10 @@ class Process
                 $template = new Template($template($args));
             }
 
-            // Splice in the result.
             $str = substr_replace($str, $template->apply($args), $start, $length);
         }
+
+        return $str;
     }
 
 
@@ -298,7 +264,7 @@ class Process
 
         // For expicit 'none' argument turn off aliases.
         if ('none' === $vendors) {
-            $this->aliases = CssCrush::$config->bareAliases;
+            $this->aliases = Crush::$config->bareAliases;
 
             return;
         }
@@ -357,7 +323,7 @@ class Process
                 foreach ($group_array as $alias_keyword => $prefix_array) {
 
                     // Skip over pointers to function groups.
-                    if ($prefix_array[0] === ':') {
+                    if ($prefix_array[0] === '.') {
                         continue;
                     }
 
@@ -388,13 +354,12 @@ class Process
     protected function filterPlugins()
     {
         $options = $this->options;
-        $config = CssCrush::$config;
+        $config = Crush::$config;
 
         // Checking for table keys is more convenient than array searching.
         $disable = array_flip($options->disable);
         $enable = array_flip($options->enable);
 
-        // Disable has the special 'all' option.
         if (isset($disable['all'])) {
             $disable = $config->plugins;
         }
@@ -414,7 +379,6 @@ class Process
             }
         }
 
-        // Enable all plugins in the remaining list.
         foreach ($this->plugins as $plugin_name => $bool) {
             Plugin::enable($plugin_name);
         }
@@ -426,28 +390,22 @@ class Process
 
     protected function captureVars()
     {
-        $vars_patt = Regex::make('~
-            @define
-            (?:
-                \s* {{block}} |
-                \s+ (?<name>{{ident}}) \s+ (?<value>[^;]+) \s* ;
-            )
-        ~ixS');
+        $patt = Regex::make('~@define(?:\s*{{ block }}|\s+(?<name>{{ ident }})\s+(?<value>[^;]+)\s*;)~iS');
 
-        $this->stream->pregReplaceCallback($vars_patt, function ($m) {
+        $this->stream->pregReplaceCallback($patt, function ($m) {
             if (isset($m['name'])) {
-                CssCrush::$process->vars[$m['name']] = $m['value'];
+                Crush::$process->vars[$m['name']] = $m['value'];
             }
             else {
-                CssCrush::$process->vars = Rule::parseBlock($m['block_content'], array(
-                                                'keyed' => true,
-                                                'ignore_directives' => true,
-                                            )) + CssCrush::$process->vars;
+                Crush::$process->vars = DeclarationList::parse($m['block_content'], array(
+                        'keyed' => true,
+                        'ignore_directives' => true,
+                    )) + Crush::$process->vars;
             }
         });
 
         // In-file variables override global variables.
-        $this->vars += CssCrush::$config->vars;
+        $this->vars += Crush::$config->vars;
 
         // Runtime variables override in-file variables.
         if (! empty($this->options->vars)) {
@@ -497,8 +455,8 @@ class Process
             $value = Functions::executeOnString($value, '~(\$)\(~',
                 array('$' => function ($raw_args) {
                     list($name, $default_value) = Functions::parseArgsSimple($raw_args);
-                    if (isset(CssCrush::$process->vars[$name])) {
-                        return CssCrush::$process->vars[$name];
+                    if (isset(Crush::$process->vars[$name])) {
+                        return Crush::$process->vars[$name];
                     }
                     else {
                         return $default_value;
@@ -513,9 +471,37 @@ class Process
     static protected function cb_placeVars($m)
     {
         $var_name = $m[1];
-        if (isset(CssCrush::$process->vars[$var_name])) {
-            return CssCrush::$process->vars[$var_name];
+        if (isset(Crush::$process->vars[$var_name])) {
+            return Crush::$process->vars[$var_name];
         }
+    }
+
+
+    #############################
+    #  @settings blocks.
+
+    protected function resolveSettings()
+    {
+        $patt = Regex::make('~@settings(?:\s*{{ block }}|\s+(?<name>{{ ident }})\s+(?<value>[^;]+)\s*;)~iS');
+        $captured_settings = array();
+
+        $this->stream->pregReplaceCallback($patt, function ($m) use (&$captured_settings) {
+            if (isset($m['name'])) {
+                $captured_settings[strtolower($m['name'])] = $m['value'];
+            }
+            else {
+                $captured_settings = DeclarationList::parse($m['block_content'], array(
+                    'keyed' => true,
+                    'ignore_directives' => true,
+                    'lowercase_keys' => true,
+                )) + $captured_settings;
+            }
+
+            return '';
+        });
+
+        // Like variables, settings passed via options override settings defined in CSS.
+        $this->settings = new Settings($this->options->settings + $captured_settings);
     }
 
 
@@ -524,15 +510,15 @@ class Process
 
     protected function resolveIfDefines()
     {
-        $matches = $this->stream->matchAll(Regex::$patt->ifDefine);
+        $ifdefine_patt = Regex::make('~@ifdefine \s+ (not \s+)? ({{ ident }}) \s* \{~ixS');
 
-        // Move through the matches last to first.
+        $matches = $this->stream->matchAll($ifdefine_patt);
+
         while ($match = array_pop($matches)) {
 
             $curly_match = new BalancedMatch($this->stream, $match[0][1]);
 
             if (! $curly_match->match) {
-                // Couldn't match the block.
                 continue;
             }
 
@@ -558,7 +544,7 @@ class Process
     protected function captureMixins()
     {
         $this->stream->pregReplaceCallback(Regex::$patt->mixin, function ($m) {
-            CssCrush::$process->mixins[$m['name']] = new Mixin($m['block_content']);
+            Crush::$process->mixins[$m['name']] = new Mixin($m['block_content']);
         });
     }
 
@@ -568,7 +554,7 @@ class Process
 
     protected function resolveFragments()
     {
-        $fragments =& CssCrush::$process->fragments;
+        $fragments =& Crush::$process->fragments;
 
         $this->stream->pregReplaceCallback(Regex::$patt->fragmentCapture, function ($m) use (&$fragments) {
             $fragments[$m['name']] = new Fragment(
@@ -610,12 +596,9 @@ class Process
             $rule = new Rule($selector, $block, $m['trace_token']);
 
             // Store rules if they have declarations or extend arguments.
-            if (! empty($rule->declarations) || $rule->extendArgs) {
+            if (! empty($rule->declarations->store) || $rule->extendArgs) {
 
-                CssCrush::$process->tokens->add($rule, 'r', $rule->label);
-
-                // If only using extend still return a label.
-                return $rule->label;
+                return Crush::$process->tokens->add($rule, 'r', $rule->label);
             }
         });
     }
@@ -638,29 +621,21 @@ class Process
 
         foreach ($this->tokens->store->r as $rule) {
 
-            $rule->flatten();
+            $rule->declarations->flatten($rule);
+            $rule->declarations->process($rule);
 
-            $rule->processDeclarations();
+            $this->hooks->run('rule_prealias', $rule);
 
-            Hook::run('rule_prealias', $rule);
+            $rule->declarations->aliasProperties($rule->vendorContext);
+            $rule->declarations->aliasFunctions($rule->vendorContext);
+            $rule->declarations->aliasDeclarations($rule->vendorContext);
 
-            if ($this->aliases['properties']) {
-                $rule->addPropertyAliases();
-            }
-            if ($this->aliases['functions']) {
-                $rule->addFunctionAliases();
-            }
-            if ($this->aliases['declarations']) {
-                $rule->addDeclarationAliases();
-            }
-            Hook::run('rule_postalias', $rule);
+            $this->hooks->run('rule_postalias', $rule);
 
-            $rule->expandSelectors();
-
-            // Find previous selectors and apply them.
+            $rule->selectors->expand();
             $rule->applyExtendables();
 
-            Hook::run('rule_postprocess', $rule);
+            $this->hooks->run('rule_postprocess', $rule);
         }
     }
 
@@ -671,7 +646,7 @@ class Process
     protected function resolveInBlocks()
     {
         $matches = $this->stream->matchAll('~@in\s+([^{]+)\{~iS');
-        $tokens = CssCrush::$process->tokens;
+        $tokens = Crush::$process->tokens;
 
         // Move through the matches in reverse order.
         while ($match = array_pop($matches)) {
@@ -679,15 +654,11 @@ class Process
             $match_start_pos = $match[0][1];
             $raw_argument = trim($match[1][0]);
 
-            Process::applySelectorAliases($raw_argument);
-
-            $raw_argument = $tokens->captureParens($raw_argument);
-            $arguments = Util::splitDelimList($raw_argument);
+            $arguments = Util::splitDelimList(Process::applySelectorAliases($raw_argument));
 
             $curly_match = new BalancedMatch($this->stream, $match_start_pos);
 
             if (! $curly_match->match || empty($raw_argument)) {
-                // Couldn't match the block.
                 continue;
             }
 
@@ -735,7 +706,7 @@ class Process
                         }
                     }
                 }
-                $rule->selectors = $new_selector_list;
+                $rule->selectors->store = $new_selector_list;
             }
 
             $curly_match->unWrap();
@@ -799,7 +770,7 @@ class Process
                             $clone_rule->vendorContext = $vendor;
 
                             // Store the clone.
-                            $replacements[] = $this->tokens->add($clone_rule, 'r');
+                            $replacements[] = $this->tokens->add($clone_rule);
                         }
 
                         // Finally replace the original labels with the cloned rule labels.
@@ -856,13 +827,11 @@ class Process
         // Apply all formatting replacements.
         $this->stream->pregReplaceHash($regex_replacements)->lTrim();
 
-        $this->stream->replaceTokens('r');
+        $this->stream->restore('r');
 
         // Record stats then drop rule objects to reclaim memory.
-        CssCrush::runStat('selector_count', 'rule_count', 'vars', 'computed_vars');
+        Crush::runStat('selector_count', 'rule_count', 'vars');
         $this->tokens->store->r = array();
-
-        $this->stream->replaceTokens('p');
 
         // If specified, apply advanced minification.
         if (is_array($minify)) {
@@ -873,13 +842,7 @@ class Process
 
         $this->decruft();
 
-        if ($minify) {
-
-            // Trim whitespace around selector combinators.
-            $this->stream->pregReplace('~ ?([>\~+]) ?~S', '$1');
-        }
-        else {
-
+        if (! $minify) {
             // Add newlines after comments.
             foreach ($this->tokens->store->c as $token => &$comment) {
                 $comment .= $EOL;
@@ -887,7 +850,7 @@ class Process
 
             // Insert comments and do final whitespace cleanup.
             $this->stream
-                ->replaceTokens('c')
+                ->restore('c')
                 ->trim()
                 ->append($EOL);
         }
@@ -921,18 +884,17 @@ class Process
             $this->stream->prepend("@charset \"$this->charset\";$EOL");
         }
 
-        $this->stream->replaceTokens('u');
-        $this->stream->replaceTokens('s');
+        $this->stream->restore(array('u', 's'));
 
         if ($this->addTracingStubs) {
-            $this->stream->replaceTokens('t', array($this, 'generateTracingStub'));
+            $this->stream->restore('t', false, array($this, 'generateTracingStub'));
         }
         if ($this->generateMap) {
             $this->generateSourceMap();
         }
     }
 
-    public function prepare()
+    public function preCompile()
     {
         // Ensure relevant ini settings aren't too conservative.
         if (ini_get('pcre.backtrack_limit') < 1000000) {
@@ -942,32 +904,42 @@ class Process
             ini_set('memory_limit', '128M');
         }
 
-        Hook::reset();
         $this->filterPlugins();
         $this->filterAliases();
 
         Functions::setMatchPatt();
+
+        $this->stat['compile_start_time'] = microtime(true);
+    }
+
+    public function postCompile()
+    {
+        foreach ($this->plugins as $plugin_name => $bool) {
+            Plugin::disable($plugin_name);
+        }
+
+        $this->release();
+
+        Crush::runStat('compile_time');
     }
 
     public function compile()
     {
-        // Always store start time.
-        $this->stat['compile_start_time'] = microtime(true);
-
-        $this->prepare();
+        $this->preCompile();
 
         // Collate hostfile and imports.
         $this->stream = new Stream(Importer::hostfile($this->input));
 
-        // Extract and calculate variables.
         $this->captureVars();
 
         $this->placeAllVars();
 
         $this->resolveIfDefines();
 
-        // Capture phase 1 hook: After all vars have resolved.
-        Hook::run('capture_phase1', $this);
+        $this->resolveSettings();
+
+        // Capture phase 1 hook: After all variables and settings have resolved.
+        $this->hooks->run('capture_phase1', $this);
 
         $this->resolveSelectorAliases();
 
@@ -976,7 +948,7 @@ class Process
         $this->resolveFragments();
 
         // Capture phase 2 hook: After most built-in directives have resolved.
-        Hook::run('capture_phase2', $this);
+        $this->hooks->run('capture_phase2', $this);
 
         $this->captureRules();
 
@@ -988,9 +960,7 @@ class Process
 
         $this->collate();
 
-        $this->release();
-
-        CssCrush::runStat('compile_time');
+        $this->postCompile();
 
         return $this->stream;
     }
@@ -1056,12 +1026,11 @@ class Process
 
     public function generateTracingStub($m)
     {
-        $token = $m[0];
-        $tokens =& $this->tokens->store->t;
-        if (! isset($tokens[$token])) {
+        if (! ($value = $this->tokens->get($m[0]))) {
             return '';
         }
-        list($source_index, $line) = explode(',', $tokens[$token]);
+
+        list($source_index, $line) = explode(',', $value);
         $line += 1;
 
         // Get the currently processed file path, and escape it.
@@ -1116,14 +1085,15 @@ class Process
     {
         static $keywords_patt, $functions_patt;
 
+        $minified_keywords = Color::getMinifyableKeywords();
+
         if (! $keywords_patt) {
-            $keywords =& Color::loadMinifyableKeywords();
-            $keywords_patt = '~(?<![\w-\.#])(' . implode('|', array_keys($keywords)) . ')(?![\w-\.#\]])~iS';
-            $functions_patt = Regex::make('~{{LB}}(rgb|hsl)\(([^\)]{5,})\)~iS');
+            $keywords_patt = '~(?<![\w-\.#])(' . implode('|', array_keys($minified_keywords)) . ')(?![\w-\.#\]])~iS';
+            $functions_patt = Regex::make('~{{ LB }}(rgb|hsl)\(([^\)]{5,})\)~iS');
         }
 
-        $this->stream->pregReplaceCallback($keywords_patt, function ($m) {
-            return Color::$minifyableKeywords[strtolower($m[0])];
+        $this->stream->pregReplaceCallback($keywords_patt, function ($m) use ($minified_keywords) {
+            return $minified_keywords[strtolower($m[0])];
         });
 
         $this->stream->pregReplaceCallback($functions_patt, function ($m) {

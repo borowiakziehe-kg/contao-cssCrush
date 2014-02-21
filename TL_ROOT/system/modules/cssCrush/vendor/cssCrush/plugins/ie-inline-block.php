@@ -2,34 +2,28 @@
 /**
  * Polyfill for display:inline-block in IE < 8
  *
- * @before
- *     display: inline-block;
- *
- * @after
- *     display: inline-block;
- *     *display: inline;
- *     *zoom: 1;
+ * @see docs/plugins/ie-inline-block.md
  */
 namespace CssCrush;
 
 Plugin::register('ie-inline-block', array(
     'enable' => function () {
-        Hook::add('rule_postalias', 'CssCrush\ie_inline_block');
+        Crush::$process->hooks->add('rule_postalias', 'CssCrush\ie_inline_block');
     },
     'disable' => function () {
-        Hook::remove('rule_postalias', 'CssCrush\ie_inline_block');
+        Crush::$process->hooks->remove('rule_postalias', 'CssCrush\ie_inline_block');
     },
 ));
 
 
 function ie_inline_block(Rule $rule) {
 
-    if ($rule->propertyCount('display') < 1) {
+    if ($rule->declarations->propertyCount('display') < 1) {
         return;
     }
 
     $stack = array();
-    foreach ($rule as $declaration) {
+    foreach ($rule->declarations as $declaration) {
         $stack[] = $declaration;
         $is_display = $declaration->property === 'display';
         if (
@@ -41,5 +35,5 @@ function ie_inline_block(Rule $rule) {
         $stack[] = new Declaration('*display', 'inline');
         $stack[] = new Declaration('*zoom', 1);
     }
-    $rule->setDeclarations($stack);
+    $rule->declarations->reset($stack);
 }

@@ -1,18 +1,18 @@
 <?php
 /**
- * 
+ *
  *  Plugin API
- * 
+ *
  */
 namespace CssCrush;
 
 class Plugin
 {
-    static protected $plugins = array();
+    public static $plugins = array();
 
     public static function info()
     {
-        $plugin_dirs = CssCrush::$config->pluginDirs;
+        $plugin_dirs = Crush::$config->pluginDirs;
         $plugin_data = array();
 
         foreach ($plugin_dirs as $plugin_dir) {
@@ -57,7 +57,7 @@ class Plugin
             $found = false;
 
             // Loop plugin_dirs to find the plugin.
-            foreach (CssCrush::$config->pluginDirs as $plugin_dir) {
+            foreach (Crush::$config->pluginDirs as $plugin_dir) {
 
                 $path = "$plugin_dir/$plugin_name.php";
                 if (file_exists($path)) {
@@ -68,7 +68,11 @@ class Plugin
             }
 
             if (! $found) {
-                CssCrush::$config->logger->notice("[[CssCrush]] - Plugin '$plugin_name' not found.");
+                notice("[[CssCrush]] - Plugin '$plugin_name' not found.");
+            }
+            elseif (isset(self::$plugins[$plugin_name]['load'])) {
+                $plugin_load = self::$plugins[$plugin_name]['load'];
+                $plugin_load();
             }
         }
 

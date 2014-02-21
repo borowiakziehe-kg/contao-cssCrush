@@ -2,71 +2,22 @@
 /**
  * Define and embed simple SVG elements, paths and effects inside CSS
  *
- * @example
- *
- *     // Define SVG.
- *     @svg foo {
- *         type: star;
- *         star-points: 5;
- *         radius: 100 50;
- *         margin: 20;
- *         stroke: black;
- *         fill: red;
- *         fill-opacity: .5;
- *     }
- *
- *     // Embed SVG with svg() function (generates an svg file in the
- *     // output directory).
- *     body {
- *         background: beige svg(foo);
- *     }
- *     // As above but creates a data URI instead of an svg file.
- *     body {
- *         background: beige svg-data(foo);
- *     }
- *
- * @example
- *
- *     // Skewed circle with radial gradient fill and drop shadow.
- *     @svg circle {
- *         type: circle;
- *         transform: skewX(30);
- *         diameter: 60;
- *         margin: 20;
- *         fill: svg-radial-gradient(at top right, gold 50%, red);
- *         drop-shadow: 2 2 0 rgba(0,0,0,1);
- *     }
- *
- * @example
- *
- *     // 8-sided polygon with an image fill.
- *     // Note: images usually have to be converted to data URIs, see known issues below.
- *     @svg pattern {
- *         type: polygon;
- *         sides: 8;
- *         diameter: 180;
- *         margin: 20;
- *         fill: pattern(data-uri(kitten.jpg), scale(1) translate(-100 0));
- *         fill-opacity: .8;
- *     }
- *
- * @known-issues
- *
- * Firefox does not allow linked images (or other svg) when svg is in "svg as image" mode -
- * i.e. Used in an img tag or as a CSS background:
- * https://bugzilla.mozilla.org/show_bug.cgi?id=628747#c0
- *
+ * @see docs/plugins/svg.md
  */
 namespace CssCrush;
 
 Plugin::register('svg', array(
+    'load' => function () {
+        $GLOBALS['CSSCRUSH_SVG_UID'] = 0;
+    },
     'enable' => function () {
-        Hook::add('capture_phase2', 'CssCrush\svg_capture');
+        $GLOBALS['CSSCRUSH_SVG_UID'] = 0;
+        Crush::$process->hooks->add('capture_phase2', 'CssCrush\svg_capture');
         Functions::register('svg', 'CssCrush\fn__svg');
         Functions::register('svg-data', 'CssCrush\fn__svg_data');
     },
     'disable' => function () {
-        Hook::remove('capture_phase2', 'CssCrush\svg_capture');
+        Crush::$process->hooks->remove('capture_phase2', 'CssCrush\svg_capture');
         Functions::deRegister('svg');
         Functions::deRegister('svg-data');
     },
@@ -92,7 +43,7 @@ function svg_capture($process) {
             $name = strtolower($m['name']);
             $block = $m['block_content'];
             if (! empty($block)) {
-                CssCrush::$process->misc->svg_defs[$name] = new Template($block);
+                Crush::$process->misc->svg_defs[$name] = new Template($block);
             }
             return '';
         });
@@ -100,7 +51,7 @@ function svg_capture($process) {
 
 function svg_generator($input, $fn_name) {
 
-    $process = CssCrush::$process;
+    $process = Crush::$process;
 
     $cache_key = $fn_name . $input;
     if (isset($process->misc->svg_cache[$cache_key])) {
@@ -195,11 +146,12 @@ function svg_generator($input, $fn_name) {
     // Apply args to template.
     $block = $svg_defs[$name]->apply($args);
 
-    // Parse the block into a keyed assoc array.
-    $raw_data = array_change_key_case(Rule::parseBlock($block, array(
+    $raw_data = DeclarationList::parse($block, array(
         'keyed' => true,
+        'lowercase_keys' => true,
         'flatten' => true,
-    )));
+        'apply_hooks' => true,
+    ));
 
     // Resolve the type.
     // Bail if type not recognised.
@@ -298,9 +250,10 @@ function svg_generator($input, $fn_name) {
     }
 
     // Cache the output URL.
-    $process->misc->svg_cache[$cache_key] = $url->label;
+    $label = $process->tokens->add($url);
+    $process->misc->svg_cache[$cache_key] = $label;
 
-    return $url->label;
+    return $label;
 }
 
 
@@ -508,7 +461,7 @@ function svg_text($element) {
         'text' => '',
     );
 
-    $text = CssCrush::$process->tokens->restore($element->data['text'], 's');
+    $text = Crush::$process->tokens->restore($element->data['text'], 's', true);
 
     // Remove open and close quotes.
     $text = substr($text, 1, strlen($text) - 2);
@@ -652,7 +605,7 @@ function svg_preprocess($element) {
 
             if (Tokens::is($value, 's')) {
                 $element->attrs[$point_data_attr] =
-                    trim(CssCrush::$process->tokens->get($value), '"\'');;
+                    trim(Crush::$process->tokens->get($value), '"\'');;
             }
         }
     }
@@ -737,8 +690,7 @@ function svg_render($element) {
             $styles .= $selector . '{' . implode(';', $out) . '}';
         }
     }
-    $styles = CssCrush::$process->tokens->restore($styles, 'u', true);
-    $styles = CssCrush::$process->tokens->restore($styles, 's');
+    $styles = Crush::$process->tokens->restore($styles, array('u', 's'), true);
 
     // Add element styles as attributes which tend to work better with svg2png converters.
     $attrs = Util::htmlAttributes($element->attrs + $element->styles);
@@ -819,15 +771,14 @@ function svg_fn_radial_gradient($input, $element) {
 
 function svg_fn_pattern($input, $element) {
 
-    static $uid = 0;
-    $pid = 'p' . (++$uid);
+    $pid = 'p' . (++$GLOBALS['CSSCRUSH_SVG_UID']);
 
     // Get args in order with defaults.
     list($url, $transform_list, $width, $height, $x, $y) =
         Functions::parseArgs($input) +
         array('', '', 0, 0, 0, 0);
 
-    $url = CssCrush::$process->tokens->get($url);
+    $url = Crush::$process->tokens->get($url);
     if (! $url) {
         return '';
     }

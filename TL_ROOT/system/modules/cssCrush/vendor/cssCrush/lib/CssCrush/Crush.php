@@ -6,9 +6,9 @@
  */
 namespace CssCrush;
 
-class CssCrush
+class Crush
 {
-    const VERSION = '2.0.1-beta';
+    const VERSION = '2.1.0-beta';
 
     // Global settings.
     public static $config;
@@ -50,28 +50,7 @@ class CssCrush
         );
         self::$config->selectorAliases = array();
         self::$config->plugins = array();
-
-        // Set option defaults, see wiki for details.
-        self::$config->options = new Options(array(
-            'minify' => true,
-            'formatter' => null,
-            'versioning' => true,
-            'boilerplate' => true,
-            'vars' => array(),
-            'cache' => true,
-            'output_file' => null,
-            'output_dir' => null,
-            'asset_dir' => null,
-            'doc_root' => null,
-            'vendor_target' => 'all',
-            'rewrite_import_urls' => true,
-            'enable' => null,
-            'disable' => null,
-            'stat_dump' => false,
-            'trace' => array(),
-            'source_map' => false,
-            'newlines' => 'use-platform',
-        ));
+        self::$config->options = new Options();
 
         // Register stock formatters.
         require_once self::$dir . '/misc/formatters.php';
@@ -108,7 +87,7 @@ class CssCrush
             }
 
             if (! $doc_root) {
-                CssCrush::$config->logger->warning("[[CssCrush]] - Could not get a valid DOCUMENT_ROOT reference.");
+                warning("[[CssCrush]] - Could not get a valid DOCUMENT_ROOT reference.");
             }
         }
 
@@ -134,7 +113,7 @@ class CssCrush
         $tree = @parse_ini_file($file, true);
 
         if ($tree === false) {
-            CssCrush::$config->logger->notice("[[CssCrush]] - Could not parse aliases file '$file'.");
+            notice("[[CssCrush]] - Could not parse aliases file '$file'.");
 
             return false;
         }
@@ -149,7 +128,7 @@ class CssCrush
                 $store = array();
                 foreach ($items as $prop_val => $aliases) {
 
-                    list($prop, $value) = array_map('trim', explode(':', $prop_val));
+                    list($prop, $value) = array_map('trim', explode('.', $prop_val));
 
                     foreach ($aliases as &$alias) {
 
@@ -171,7 +150,7 @@ class CssCrush
             }
 
             // Function groups.
-            elseif (strpos($section, 'functions:') === 0) {
+            elseif (strpos($section, 'functions.') === 0) {
 
                 $group = substr($section, strlen('functions'));
 
@@ -187,8 +166,7 @@ class CssCrush
                         if (preg_match($regex->vendorPrefix, $alias_func, $m)) {
 
                             // We'll cache the function matching regex here.
-                            $vendor_grouped_aliases[$m[1]]['find'][] =
-                                Regex::make('~{{LB}}' . $func_name . '{{RTB}}~i');
+                            $vendor_grouped_aliases[$m[1]]['find'][] = Regex::make("~{{ LB }}$func_name(?=\()~i");
                             $vendor_grouped_aliases[$m[1]]['replace'][] = $alias_func;
                         }
                     }
@@ -211,7 +189,7 @@ class CssCrush
      * @param mixed $options  An array of options or null.
      * @return string  The public path to the compiled file or an empty string.
      */
-    public static function file($file, $options = null)
+    public static function file($file, $options = array())
     {
         self::$process = new Process($options, array('io_context' => 'file'));
 
@@ -223,7 +201,7 @@ class CssCrush
         $process->input->raw = $file;
 
         if (! ($input_file = Util::resolveUserPath($file))) {
-            $config->logger->warning('[[CssCrush]] - Input file \'' . basename($file) . '\' not found.');
+            warning('[[CssCrush]] - Input file \'' . basename($file) . '\' not found.');
 
             return '';
         }
@@ -233,7 +211,7 @@ class CssCrush
             return '';
         }
 
-        CssCrush::runStat('hostfile');
+        Crush::runStat('hostfile');
 
         if ($options->cache) {
             $process->cacheData = $process->io('getCacheData');
@@ -258,7 +236,7 @@ class CssCrush
      * @param array $attributes  An array of HTML attributes.
      * @return string  HTML link tag or error message inside HTML comment.
      */
-    public static function tag($file, $options = null, $tag_attributes = array())
+    public static function tag($file, $options = array(), $tag_attributes = array())
     {
         $file = self::file($file, $options);
 
@@ -289,9 +267,9 @@ class CssCrush
      * @param array $attributes  An array of HTML attributes, set false to return CSS text without tag.
      * @return string  HTML link tag or error message inside HTML comment.
      */
-    public static function inline($file, $options = null, $tag_attributes = array())
+    public static function inline($file, $options = array(), $tag_attributes = array())
     {
-        // For inline output set boilerplate to not display by default
+        // For inline output set boilerplate to not display by default.
         if (! is_array($options)) {
             $options = array();
         }
@@ -303,7 +281,7 @@ class CssCrush
 
         if (! empty($file)) {
 
-            // On success fetch the CSS text
+            // On success fetch the CSS text.
             $content = file_get_contents(self::$process->output->dir . '/' . self::$process->output->filename);
             $tag_open = '';
             $tag_close = '';
@@ -317,7 +295,7 @@ class CssCrush
         }
         else {
 
-            // Return an HTML comment with message on failure
+            // Return an HTML comment with message on failure.
             $class = __CLASS__;
             $errors = implode("\n", self::$process->errors);
             return "<!-- $class: $errors -->\n";
@@ -331,7 +309,7 @@ class CssCrush
      * @param mixed $options  An array of options or null.
      * @return string  CSS text.
      */
-    public static function string($string, $options = null)
+    public static function string($string, $options = array())
     {
         // For strings set boilerplate to not display by default
         if (! isset($options['boilerplate'])) {
@@ -350,7 +328,7 @@ class CssCrush
             $process->resolveContext($options->context);
         }
         else {
-            $process->resolveContext($process->docRoot);
+            $process->resolveContext();
         }
 
         // Set the string on the input object.
@@ -369,7 +347,7 @@ class CssCrush
      */
     public static function stat()
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $stats = $process->stat;
 
         // Get logged errors as late as possible.
@@ -387,12 +365,12 @@ class CssCrush
 
     public static function addSelectorAlias($name, $body)
     {
-        CssCrush::$config->selectorAliases[$name] = is_callable($body) ? $body : new Template($body);
+        Crush::$config->selectorAliases[$name] = is_callable($body) ? $body : new Template($body);
     }
 
     public static function removeSelectorAlias($name)
     {
-        unset(CssCrush::$config->selectorAliases[$name]);
+        unset(Crush::$config->selectorAliases[$name]);
     }
 
 
@@ -418,8 +396,7 @@ class CssCrush
 
     public static function runStat()
     {
-        $process = CssCrush::$process;
-        $all_rules =& $process->tokens->store->r;
+        $process = Crush::$process;
 
         foreach (func_get_args() as $stat_name) {
 
@@ -429,11 +406,9 @@ class CssCrush
                     break;
 
                 case 'vars':
-                    $process->stat['vars'] = $process->vars;
-                    break;
-
-                case 'computed_vars':
-                    $process->stat['computed_vars'] = array_map('CssCrush\Functions::executeOnString', $process->vars);
+                    $process->stat['vars'] = array_map(function ($item) use ($process) {
+                        return $process->tokens->restore(Functions::executeOnString($item), array('s', 'u', 'p'));
+                    }, $process->vars);
                     break;
 
                 case 'compile_time':
@@ -443,17 +418,35 @@ class CssCrush
 
                 case 'selector_count':
                     $process->stat['selector_count'] = 0;
-                    foreach ($all_rules as $rule) {
+                    foreach ($process->tokens->store->r as $rule) {
                         $process->stat['selector_count'] += count($rule->selectors);
                     }
                     break;
 
                 case 'rule_count':
-                    $process->stat['rule_count'] = count($all_rules);
+                    $process->stat['rule_count'] = count($process->tokens->store->r);
                     break;
             }
         }
     }
 }
 
-CssCrush::init();
+
+function log($message, $context = array(), $type = 'debug') {
+    Crush::$config->logger->{$type}($message, $context);
+}
+
+function debug($message, $context = array()) {
+    Crush::$config->logger->debug($message, $context);
+}
+
+function notice($message, $context = array()) {
+    Crush::$config->logger->notice($message, $context);
+}
+
+function warning($message, $context = array()) {
+    Crush::$config->logger->warning($message, $context);
+}
+
+
+Crush::init();

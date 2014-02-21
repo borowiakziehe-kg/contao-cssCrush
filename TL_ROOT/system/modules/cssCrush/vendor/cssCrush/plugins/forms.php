@@ -1,30 +1,20 @@
 <?php
 /**
- * Pseudo classes for working with forms.
+ * Pseudo classes for working with forms
  *
- * @before
- *      :input(date, search, email) {...}
- *      :checkbox {...}
- *      :radio {...}
- *      :text {...}
- *
- * @after
- *      input[type="date"], input[type="search"], input[type="email"] {...}
- *      input[type="checkbox"] {...}
- *      input[type="radio"] {...}
- *      input[type="text"] {...}
+ * @see docs/plugins/forms.md
  */
 namespace CssCrush;
 
 Plugin::register('forms', array(
     'enable' => function () {
         foreach (forms() as $name => $value) {
-            CssCrush::addSelectorAlias($name, $value);
+            Crush::addSelectorAlias($name, $value);
         }
     },
     'disable' => function () {
         foreach (forms() as $name => $value) {
-            CssCrush::removeSelectorAlias($name);
+            Crush::removeSelectorAlias($name);
         }
     },
 ));
@@ -35,11 +25,11 @@ function forms() {
         'input' => function ($args) {
             $types = array();
             foreach ($args as $type) {
-                $types[] = "[type=\"$type\"]";
+                $types[] = "[type=$type]";
             }
 
             $result = $types ? 'input:any(' .  implode(',', $types) . ')' : 'input[type="text"]';
-            return CssCrush::$process->tokens->captureStrings($result);
+            return Crush::$process->tokens->capture($result, 's');
         },
 
         'checkbox' => 'input[type="checkbox"]',

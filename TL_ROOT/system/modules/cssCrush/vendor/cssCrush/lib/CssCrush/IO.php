@@ -10,13 +10,13 @@ class IO
 {
     public static function init()
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $process->cacheFile = "{$process->output->dir}/.csscrush";
     }
 
     public static function getOutputDir()
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $output_dir = $process->options->output_dir;
 
         return $output_dir ? $output_dir : $process->input->dir;
@@ -24,24 +24,23 @@ class IO
 
     public static function testOutputDir()
     {
-        $dir = CssCrush::$process->output->dir;
-        $logger = CssCrush::$config->logger;
+        $dir = Crush::$process->output->dir;
         $pathtest = true;
 
         if (! file_exists($dir)) {
-            $logger->warning("[[CssCrush]] - Output directory '$dir' doesn't exist.");
+            warning("[[CssCrush]] - Output directory '$dir' doesn't exist.");
             $pathtest = false;
         }
         elseif (! is_writable($dir)) {
 
-            $logger->debug('Attempting to change permissions.');
+            debug('Attempting to change permissions.');
 
             if (! @chmod($dir, 0755)) {
-                $logger->warning("[[CssCrush]] - Output directory '$dir' is unwritable.");
+                warning("[[CssCrush]] - Output directory '$dir' is unwritable.");
                 $pathtest = false;
             }
             else {
-                $logger->debug('Permissions updated.');
+                debug('Permissions updated.');
             }
         }
 
@@ -50,7 +49,7 @@ class IO
 
     public static function getOutputFileName()
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $options = $process->options;
 
         $output_basename = basename($process->input->filename, '.css');
@@ -64,16 +63,16 @@ class IO
 
     public static function getOutputUrl()
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $options = $process->options;
         $filename = $process->output->filename;
 
         $url = $process->output->dirUrl . '/' . $filename;
 
         // Make URL relative if the input path was relative.
-        $input_path = new Url($process->input->raw, array('standalone' => true));
+        $input_path = new Url($process->input->raw);
         if ($input_path->isRelative) {
-            $url = Util::getLinkBetweenPaths(CssCrush::$config->scriptDir, $process->output->dir) . $filename;
+            $url = Util::getLinkBetweenPaths(Crush::$config->scriptDir, $process->output->dir) . $filename;
         }
 
         // Optional query-string timestamp.
@@ -92,9 +91,8 @@ class IO
 
     public static function validateCache()
     {
-        $process = CssCrush::$process;
-        $config = CssCrush::$config;
-        $logger = $config->logger;
+        $process = Crush::$process;
+        $config = Crush::$config;
         $options = $process->options;
         $input = $process->input;
         $output = $process->output;
@@ -102,13 +100,13 @@ class IO
         $filename = $output->filename;
 
         if (! file_exists($output->dir . '/' . $filename)) {
-            $logger->debug('No file cached.');
+            debug('No file cached.');
 
             return false;
         }
 
         if (! isset($process->cacheData[$filename])) {
-            $logger->debug('Cached file exists but is not registered.');
+            debug('Cached file exists but is not registered.');
 
             return false;
         }
@@ -128,7 +126,7 @@ class IO
             }
             else {
                 // File has been moved, remove old file and skip to compile.
-                $logger->debug('Recompiling - an import file has been moved.');
+                debug('Recompiling - an import file has been moved.');
 
                 return false;
             }
@@ -136,7 +134,7 @@ class IO
 
         $files_changed = $data['datem_sum'] != array_sum($file_sums);
         if ($files_changed) {
-            $logger->debug('Files have been modified. Recompiling.');
+            debug('Files have been modified. Recompiling.');
         }
 
         // Compare runtime options and cached options for differences.
@@ -146,14 +144,14 @@ class IO
         $active_options = $options->get();
         foreach ($cached_options as $key => &$value) {
             if (isset($active_options[$key]) && $active_options[$key] !== $value) {
-                $logger->debug('Options have been changed. Recompiling.');
+                debug('Options have been changed. Recompiling.');
                 $options_changed = true;
                 break;
             }
         }
 
         if (! $options_changed && ! $files_changed) {
-            $logger->debug("Files and options have not been modified, returning cached file.");
+            debug("Files and options have not been modified, returning cached file.");
 
             return true;
         }
@@ -166,9 +164,9 @@ class IO
 
     public static function getCacheData()
     {
-        $config = CssCrush::$config;
+        $config = Crush::$config;
         $logger = $config->logger;
-        $process = CssCrush::$process;
+        $process = Crush::$process;
 
         if (
             file_exists($process->cacheFile) &&
@@ -188,17 +186,17 @@ class IO
             $cache_data = json_decode(file_get_contents($process->cacheFile), true)
         ) {
             // Successfully loaded config file.
-            $logger->debug('Cache data loaded.');
+            debug('Cache data loaded.');
         }
         else {
             // Config file may exist but not be writable (may not be visible in some ftp situations?)
             if ($cache_data_exists) {
                 if (! @unlink($process->cacheFile)) {
-                    $logger->notice('[[CssCrush]] - Could not delete cache data file.');
+                    notice('[[CssCrush]] - Could not delete cache data file.');
                 }
             }
             else {
-                $logger->debug('Creating cache data file.');
+                debug('Creating cache data file.');
             }
             Util::filePutContents($process->cacheFile, json_encode(array()), __METHOD__);
         }
@@ -208,10 +206,10 @@ class IO
 
     public static function saveCacheData()
     {
-        $process = CssCrush::$process;
-        $logger = CssCrush::$config->logger;
+        $process = Crush::$process;
+        $logger = Crush::$config->logger;
 
-        $logger->debug('Saving config.');
+        debug('Saving config.');
 
         $flags = defined('JSON_PRETTY_PRINT') ? JSON_PRETTY_PRINT : 0;
         Util::filePutContents($process->cacheFile, json_encode($process->cacheData, $flags), __METHOD__);
@@ -219,11 +217,12 @@ class IO
 
     public static function write(Stream $stream)
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $output = $process->output;
+        $source_map_filename = "$output->filename.map";
 
         if ($process->sourceMap) {
-            $stream->append($process->newline . "/*# sourceMappingURL=$source_map_filename.map */");
+            $stream->append($process->newline . "/*# sourceMappingURL=$source_map_filename */");
         }
 
         if (Util::filePutContents("$output->dir/$output->filename", $stream, __METHOD__)) {

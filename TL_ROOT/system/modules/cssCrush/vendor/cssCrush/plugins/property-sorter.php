@@ -2,50 +2,23 @@
 /**
  * Customizable property sorting
  *
- * Examples use the predefined sorting table.
- *
- * To define a custom sorting order pass an array to csscrush_set_property_sort_order():
- *
- *     csscrush_set_property_sort_order( array( 'color', ... ) );
- *
- *
- * @before
- *     color: red;
- *     background: #000;
- *     opacity: .5;
- *     display: block;
- *
- * @after
- *     display: block;
- *     opacity: .5;
- *     color: red;
- *     background: #000;
- *
+ * @see docs/plugins/property-sorter.md
  */
 namespace CssCrush {
 
     Plugin::register('property-sorter', array(
         'enable' => function () {
-            Hook::add('rule_prealias', 'CssCrush\property_sorter');
+            Crush::$process->hooks->add('rule_prealias', 'CssCrush\property_sorter');
         },
         'disable' => function () {
-            Hook::remove('rule_prealias', 'CssCrush\property_sorter');
+            Crush::$process->hooks->remove('rule_prealias', 'CssCrush\property_sorter');
         },
     ));
 
 
     function property_sorter(Rule $rule) {
 
-        $new_set = array();
-
-        // Create plain array of rule declarations.
-        foreach ($rule as $declaration) {
-            $new_set[] = $declaration;
-        }
-
-        usort($new_set, 'CssCrush\property_sorter_callback');
-
-        $rule->setDeclarations($new_set);
+        usort($rule->declarations->store, 'CssCrush\property_sorter_callback');
     }
 
 
@@ -150,14 +123,14 @@ namespace CssCrush {
         else {
 
             // Load from property-sorting.ini.
-            $sorting_file_contents = file_get_contents(CssCrush::$dir . '/misc/property-sorting.ini');
+            $sorting_file_contents = file_get_contents(Crush::$dir . '/misc/property-sorting.ini');
             if ($sorting_file_contents !== false) {
 
                 $sorting_file_contents = preg_replace('~;[^\r\n]*~', '', $sorting_file_contents);
                 $table = preg_split('~\s+~', trim($sorting_file_contents));
             }
             else {
-                CssCrush::$config->logger->notice("[[CssCrush]] - Property sorting file not found.");
+                notice("[[CssCrush]] - Property sorting file not found.");
             }
 
             // Store to the global variable.

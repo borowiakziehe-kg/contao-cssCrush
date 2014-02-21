@@ -17,7 +17,7 @@ class Mixin
 
     public static function call($message, $context = null)
     {
-        $process = CssCrush::$process;
+        $process = Crush::$process;
         $mixable = null;
         $message = trim($message);
 
@@ -61,7 +61,7 @@ class Mixin
                 $args = Util::splitDelimList($raw_args);
             }
 
-            return Rule::parseBlock($mixable->template->apply($args), array(
+            return DeclarationList::parse($mixable->template->apply($args), array(
                 'flatten' => true,
                 'context' => $mixable,
             ));
@@ -69,7 +69,7 @@ class Mixin
         elseif ($mixable instanceof Rule) {
 
             $result = array();
-            foreach ($mixable as $declaration) {
+            foreach ($mixable->declarations as $declaration) {
                 if ($declaration instanceof Declaration) {
                     $result[] = array(
                         $declaration->property,
