@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="d48c2800-9c1b-4eae-b071-f7ee41083979" name="Default" comment="">
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/Aliases.ini" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/Aliases.ini" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/CHANGELOG.md" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/CHANGELOG.md" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/CHANGELOG.txt" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/CHANGELOG.txt" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/CssCrush.boilerplate" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/CssCrush.boilerplate" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/CssCrush.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/CssCrush.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/LICENSE.txt" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/LICENSE.txt" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/Plugins.ini" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/Plugins.ini" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/Prepend.css" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/Prepend.css" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/README.md" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/README.md" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/boilerplate.txt" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/boilerplate.txt" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/cli.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/cli.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/composer.json" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/composer.json" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/BalancedMatch.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/BalancedMatch.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Color.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Color.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/CssCrush.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/CssCrush.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Declaration.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Declaration.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/ExtendArg.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/ExtendArg.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Fragment.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Fragment.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Functions.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Functions.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Hook.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Hook.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/IO.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/IO.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/IO/Watch.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/IO/Watch.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Importer.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Importer.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Logger.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Logger.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Mixin.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Mixin.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Options.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Options.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Plugin.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Plugin.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/PostAliasFix.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/PostAliasFix.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Process.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Process.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Regex.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Regex.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Rule.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Rule.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Selector.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Selector.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Stream.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Stream.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Template.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Template.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Tokens.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Tokens.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Url.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Url.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Util.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Util.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/CssCrush/Version.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/CssCrush/Version.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/lib/functions.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/lib/functions.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/misc/color-keywords.ini" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/misc/color-keywords.ini" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/misc/csscrush" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/misc/csscrush" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/misc/formatters.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/misc/formatters.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/misc/initial-values.ini" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/misc/initial-values.ini" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/misc/property-sorting.ini" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/misc/property-sorting.ini" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/aria.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/aria.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/canvas.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/canvas.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/ease.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/ease.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/forms.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/forms.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/hocus-pocus.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/hocus-pocus.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/hsl-to-hex.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/hsl-to-hex.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/ie-inline-block.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/ie-inline-block.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/ie-opacity.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/ie-opacity.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/initial.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/initial.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/legacy-flexbox.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/legacy-flexbox.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/loop.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/loop.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/noise.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/noise.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/property-sorter.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/property-sorter.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/px2em.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/px2em.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/rem.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/rem.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/svg-gradients.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/svg-gradients.php" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/TL_ROOT/system/vendor/cssCrush/plugins/svg.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/vendor/cssCrush/plugins/svg.php" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/CssCrushLoader.php" afterPath="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/CssCrushLoader.php" />
+    </list>
+    <ignored path="contao-cssCrush.iws" />
+    <ignored path=".idea/workspace.xml" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
+  <component name="CreatePatchCommitExecutor">
+    <option name="PATCH_PATH" value="" />
+  </component>
+  <component name="DaemonCodeAnalyzer">
+    <disable_hints />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FavoritesManager">
+    <favorites_list name="contao-cssCrush" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file leaf-file-name="config.php" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/config/config.php">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="-0.0" vertical-offset="0" max-vertical-offset="135">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CssCrushLoader.php" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/CssCrushLoader.php">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="78" column="85" selection-start="2787" selection-end="2787" vertical-scroll-proportion="0.9204666" vertical-offset="182" max-vertical-offset="1650">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindManager">
+    <FindUsagesManager>
+      <setting name="OPEN_NEW_TAB" value="false" />
+    </FindUsagesManager>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="changedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/CssCrushLoader.php" />
+      </list>
+    </option>
+  </component>
+  <component name="PhpWorkspaceProjectConfiguration" backward_compatibility_performed="true" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="4" />
+    <option name="y" value="22" />
+    <option name="width" value="1916" />
+    <option name="height" value="1058" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="false">
+    <OptionsSetting value="true" id="Add" />
+    <OptionsSetting value="true" id="Remove" />
+    <OptionsSetting value="true" id="Checkout" />
+    <OptionsSetting value="true" id="Update" />
+    <OptionsSetting value="true" id="Status" />
+    <OptionsSetting value="true" id="Edit" />
+    <ConfirmationsSetting value="0" id="Add" />
+    <ConfirmationsSetting value="0" id="Remove" />
+  </component>
+  <component name="ProjectReloadState">
+    <option name="STATE" value="0" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1" splitterProportion="0.5">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="TL_ROOT" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="system" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="modules" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="TL_ROOT" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="system" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="modules" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="vendor" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="contao-cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="TL_ROOT" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="system" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="modules" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="vendor" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="cssCrush" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="plugins" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="options.lastSelected" value="project.propVCSSupport.Mappings" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <list size="0" />
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d48c2800-9c1b-4eae-b071-f7ee41083979" name="Default" comment="" />
+      <created>1392982058053</created>
+      <updated>1392982058053</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="4" y="22" width="1916" height="1058" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2497332" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="Vcs.Log.UiProperties">
+    <option name="RECENTLY_FILTERED_USER_GROUPS">
+      <collection />
+    </option>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="myTodoPanelSettings">
+      <TodoPanelSettings />
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/config/config.php">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="-0.0" vertical-offset="0" max-vertical-offset="135">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/TL_ROOT/system/modules/cssCrush/CssCrushLoader.php">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="78" column="85" selection-start="2787" selection-end="2787" vertical-scroll-proportion="0.9204666" vertical-offset="182" max-vertical-offset="1650">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>
+

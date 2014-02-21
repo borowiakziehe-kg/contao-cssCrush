@@ -34,7 +34,7 @@ class CssCrushLoader extends \Frontend
             }
 
             // Load cssCrush compiler
-            require_once 'system/vendor/cssCrush/CssCrush.php';
+            require_once 'system/modules/cssCrush/vendor/cssCrush/CssCrush.php';
 
             // Buffer the plugins
             $plugins = self::generatePluginArrays($objLayout);
@@ -76,7 +76,7 @@ class CssCrushLoader extends \Frontend
     {
         $data = array();
 
-        if ($handle = opendir(TL_ROOT .'/'. 'system/vendor/cssCrush/plugins')) {
+        if ($handle = opendir(TL_ROOT .'/'. 'system/modules/cssCrush/vendor/cssCrush/plugins')) {
 
             while (false !== ($file = readdir($handle))) {
                 if ($file != "." && $file != "..") {
