@@ -11,11 +11,9 @@
 
     namespace slashworks;
 
-    ini_set("display_errors","1");
 
     class CssCrushLoader extends \Frontend
     {
-
 
         static $oCssCrushFile;
         static $aOptions;
