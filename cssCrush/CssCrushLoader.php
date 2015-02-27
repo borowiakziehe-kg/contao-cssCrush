@@ -95,7 +95,7 @@
 
         //add file to template
         //$GLOBALS['TL_CSS'][CssCrushLoader::$oCssCrushFile->hash] = $compiled_file . $strStatic;
-        $GLOBALS['TL_HEAD'][] = "<link rel='stylesheet' href='$compiled_file.$strStatic'/>";
+            $GLOBALS['TL_HEAD'][] = "<link rel='stylesheet' href='$compiled_file".$strStatic."'/>";
 
     }
 
