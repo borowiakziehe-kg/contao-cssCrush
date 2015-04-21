@@ -10,20 +10,10 @@
  */
 
 $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = str_replace(
-    '{style_legend}',
-    '{style_legend},useCssCrush',
+    'external',
+    'external,cssCrushFile;{csscrushoptions_legend},cssCrushMinify,cssCrushCache,cssCrushVersioning,cssCrushCtoCombiner,cssCrushSourceMap;{csscrushpath_legend:hide},cssCrushDirName,cssCrushFileName,cssCrushDocRoot,cssCrushContext;{csscrushplugins_legend},cssCrushPlugins;',
     $GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
 );
-array_push($GLOBALS['TL_DCA']['tl_layout']['palettes']['__selector__'], 'useCssCrush');
-
-$originalDefault = str_replace
-(
-    'useCssCrush',
-    'useCssCrush,cssCrushFile;{csscrushoptions_legend},cssCrushMinify,cssCrushCache,cssCrushVersioning,cssCrushCtoCombiner,cssCrushSourceMap;{csscrushpath_legend:hide},cssCrushDirName,cssCrushFileName,cssCrushDocRoot,cssCrushContext;{csscrushplugins_legend},cssCrushPlugins;{cssframework_legend:hide},',
-    $GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
-);
-
-$GLOBALS['TL_DCA']['tl_layout']['palettes']['cssCrush'] = $originalDefault;
 
 $fields = array
 (
@@ -45,7 +35,7 @@ $fields = array
         'label'                   => &$GLOBALS['TL_LANG']['tl_layout']['cssCrushSrc'],
         'exclude'                 => true,
         'inputType'               => 'fileTree',
-        'eval'                    => array('fieldType'=>'radio', 'mandatory'=>true, 'files'=>true, 'tl_class'=>'clr m12', 'extensions' => 'css'),
+        'eval'                    => array('fieldType'=>'radio', 'mandatory'=>false, 'files'=>true, 'tl_class'=>'clr m12', 'extensions' => 'css'),
         'sql'                     => "binary(16) NULL",
     ),
 
